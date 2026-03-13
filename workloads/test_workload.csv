@@ -1,0 +1,7 @@
+arrival_time_us,cpu_burst_duration_us,io_burst_duration_us,nice,weight,scheduling_class,cpu_request
+0,50000,0,0,1024,0,0.1
+0,30000,0,0,1024,0,0.1
+0,80000,0,5,335,1,0.05
+100000,20000,0,0,1024,0,0.1
+100000,60000,0,10,110,0,0.02
+200000,40000,0,-5,3121,2,0.2
