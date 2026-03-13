@@ -1,0 +1,76 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/scheduler/scheduler.hpp
+task.hpp
+../include/scheduler/task.hpp
+string
+-
+memory
+-
+
+../include/scheduler/task.hpp
+cstdint
+-
+memory
+-
+array
+-
+
+../include/schedulers/cfs_scheduler.hpp
+scheduler/scheduler.hpp
+../include/schedulers/scheduler/scheduler.hpp
+set
+-
+
+../include/schedulers/eevdf_scheduler.hpp
+scheduler/scheduler.hpp
+../include/schedulers/scheduler/scheduler.hpp
+vector
+-
+
+../include/schedulers/mlfq_scheduler.hpp
+scheduler/scheduler.hpp
+../include/schedulers/scheduler/scheduler.hpp
+deque
+-
+array
+-
+
+../include/schedulers/stride_scheduler.hpp
+scheduler/scheduler.hpp
+../include/schedulers/scheduler/scheduler.hpp
+vector
+-
+
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/cfs_scheduler.cpp
+schedulers/cfs_scheduler.hpp
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/schedulers/cfs_scheduler.hpp
+algorithm
+-
+
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/eevdf_scheduler.cpp
+schedulers/eevdf_scheduler.hpp
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/schedulers/eevdf_scheduler.hpp
+algorithm
+-
+limits
+-
+
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/mlfq_scheduler.cpp
+schedulers/mlfq_scheduler.hpp
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/schedulers/mlfq_scheduler.hpp
+iostream
+-
+
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/stride_scheduler.cpp
+schedulers/stride_scheduler.hpp
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/schedulers/stride_scheduler.hpp
+algorithm
+-
+

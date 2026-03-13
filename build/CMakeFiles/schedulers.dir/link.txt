@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc lib/libschedulers.a  CMakeFiles/schedulers.dir/src/schedulers/cfs_scheduler.cpp.o CMakeFiles/schedulers.dir/src/schedulers/eevdf_scheduler.cpp.o CMakeFiles/schedulers.dir/src/schedulers/mlfq_scheduler.cpp.o CMakeFiles/schedulers.dir/src/schedulers/stride_scheduler.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib lib/libschedulers.a

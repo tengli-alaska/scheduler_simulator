@@ -1,0 +1,10 @@
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build/CMakeFiles/rebuild_cache.dir
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build/CMakeFiles/clean-results.dir
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build/CMakeFiles/run.dir
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build/CMakeFiles/random_lib.dir
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build/CMakeFiles/schedulers.dir
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build/CMakeFiles/quick-test.dir
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build/CMakeFiles/scheduler_core.dir
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build/CMakeFiles/scheduler_sim.dir
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build/CMakeFiles/edit_cache.dir
+/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build/CMakeFiles/workloads.dir
