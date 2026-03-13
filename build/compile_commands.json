@@ -1,0 +1,82 @@
+[
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/cc  -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7 -fPIC   -Wall -Wextra -Wpedantic -std=gnu99 -o CMakeFiles/random_lib.dir/lib/rngs.c.o   -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib/rngs.c\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib/rngs.c"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/cc  -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7 -fPIC   -Wall -Wextra -Wpedantic -std=gnu99 -o CMakeFiles/random_lib.dir/lib/rvgs.c.o   -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib/rvgs.c\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib/rvgs.c"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/schedulers.dir/src/schedulers/cfs_scheduler.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/cfs_scheduler.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/cfs_scheduler.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/schedulers.dir/src/schedulers/eevdf_scheduler.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/eevdf_scheduler.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/eevdf_scheduler.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/schedulers.dir/src/schedulers/mlfq_scheduler.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/mlfq_scheduler.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/mlfq_scheduler.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/schedulers.dir/src/schedulers/stride_scheduler.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/stride_scheduler.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/schedulers/stride_scheduler.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/scheduler_core.dir/src/core/task.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/core/task.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/core/task.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/scheduler_core.dir/src/core/event.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/core/event.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/core/event.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/scheduler_core.dir/src/core/simulator.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/core/simulator.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/core/simulator.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/scheduler_core.dir/src/core/metrics.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/core/metrics.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/core/metrics.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/scheduler_sim.dir/apps/main.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/apps/main.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/apps/main.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/workloads.dir/src/workloads/cpu_bound.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/workloads/cpu_bound.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/workloads/cpu_bound.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/workloads.dir/src/workloads/io_bound.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/workloads/io_bound.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/workloads/io_bound.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/workloads.dir/src/workloads/mixed.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/workloads/mixed.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/workloads/mixed.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/workloads.dir/src/workloads/bursty.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/workloads/bursty.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/workloads/bursty.cpp"
+},
+{
+  "directory": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/build",
+  "command": "/Library/Developer/CommandLineTools/usr/bin/c++   -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/include\" -I\"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/lib\"  -O3 -DNDEBUG -march=native -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk -mmacosx-version-min=15.7   -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/workloads.dir/src/workloads/bimodal.cpp.o -c \"/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/workloads/bimodal.cpp\"",
+  "file": "/Users/krutarthtrivedi/Desktop/Nayana/Spring 2026/Simulation and performance Evaluation/Final Project/Project_Skeleton_idea/src/workloads/bimodal.cpp"
+}
+]
