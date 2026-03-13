@@ -4,11 +4,11 @@ A comprehensive C++17 framework for evaluating CPU scheduling policies.
 
 ## Features
 
-- ✅ **4 Schedulers**: CFS, EEVDF, MLFQ, Stride
-- ✅ **5 Workloads**: CPU-Bound, I/O-Bound, Mixed, Bursty, Bimodal
-- ✅ **Comprehensive Metrics**: Response time, throughput, fairness
-- ✅ **Modern C++17**: Clean, type-safe, efficient
-- ✅ **Modular Design**: Easy to extend
+- **4 Schedulers**: CFS, EEVDF, MLFQ, Stride
+- **5 Workloads**: CPU-Bound, I/O-Bound, Mixed, Bursty, Bimodal
+- **Comprehensive Metrics**: Response time, throughput, fairness
+- **Modern C++17**: Clean, type-safe, efficient
+- **Modular Design**: Easy to extend
 
 ## Quick Start
 ```bash
