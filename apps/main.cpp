@@ -111,8 +111,8 @@ void run_experiment(
     // Calculate metrics
     Metrics metrics;
     metrics.calculate(sim.completed_tasks(), sim.current_time());
-    metrics.context_switches = sim.scheduler()->context_switches();
-    metrics.preemptions = sim.scheduler()->preemptions();
+    metrics.context_switches = sim.context_switches();
+    metrics.preemptions = sim.preemptions();
     
     // Print results
     metrics.print(scheduler_name, workload_gen.name());

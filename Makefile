@@ -1,23 +1,45 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -I include
-LDFLAGS =
+CC = gcc
+CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -I include -I lib
+CFLAGS = -std=c99 -O2 -Wall -I lib
+LDFLAGS = -lm
 
-SRC_DIR = src
 BUILD_DIR = build
-INCLUDE_DIR = include
 
-SRCS = $(wildcard $(SRC_DIR)/*.cpp)
-OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
-TARGET = $(BUILD_DIR)/scheduler_sim
+# C sources (random library)
+C_SRCS = lib/rngs.c lib/rvgs.c lib/rvms.c
+C_OBJS = $(C_SRCS:lib/%.c=$(BUILD_DIR)/%.o)
 
-.PHONY: all clean test run
+# C++ core sources
+CXX_CORE_SRCS = src/core/task.cpp src/core/event.cpp src/core/simulator.cpp src/core/metrics.cpp
+CXX_CORE_OBJS = $(CXX_CORE_SRCS:src/core/%.cpp=$(BUILD_DIR)/core_%.o)
+
+# C++ workload sources
+CXX_WL_SRCS = $(wildcard src/workloads/*.cpp)
+CXX_WL_OBJS = $(CXX_WL_SRCS:src/workloads/%.cpp=$(BUILD_DIR)/wl_%.o)
+
+# Main
+MAIN_OBJ = $(BUILD_DIR)/main.o
+TARGET = $(BUILD_DIR)/bin/scheduler_sim
+
+.PHONY: all clean run quick-test
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $@ $(LDFLAGS)
+$(TARGET): $(C_OBJS) $(CXX_CORE_OBJS) $(CXX_WL_OBJS) $(MAIN_OBJ)
+	@mkdir -p $(BUILD_DIR)/bin
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: lib/%.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/core_%.o: src/core/%.cpp | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/wl_%.o: src/workloads/%.cpp | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/main.o: apps/main.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(BUILD_DIR):
@@ -26,10 +48,8 @@ $(BUILD_DIR):
 clean:
 	rm -rf $(BUILD_DIR)
 
-# Run all schedulers on test workload
 run: $(TARGET)
-	./$(TARGET) workloads/test_workload.csv all
+	./$(TARGET)
 
-# Quick test with RR
-test: $(TARGET)
-	./$(TARGET) workloads/test_workload.csv rr
+quick-test: $(TARGET)
+	./$(TARGET) -n 10

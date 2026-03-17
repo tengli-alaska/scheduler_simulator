@@ -98,24 +98,6 @@ target_link_libraries(scheduler_core PUBLIC
 )
 
 # ============================================================================
-# Schedulers Library
-# ============================================================================
-add_library(schedulers STATIC
-    src/schedulers/cfs_scheduler.cpp
-    src/schedulers/eevdf_scheduler.cpp
-    src/schedulers/mlfq_scheduler.cpp
-    src/schedulers/stride_scheduler.cpp
-)
-
-target_include_directories(schedulers PUBLIC
-    ${PROJECT_SOURCE_DIR}/include
-)
-
-target_link_libraries(schedulers PUBLIC
-    scheduler_core
-)
-
-# ============================================================================
 # Workloads Library
 # ============================================================================
 add_library(workloads STATIC
@@ -144,7 +126,6 @@ add_executable(scheduler_sim
 
 target_link_libraries(scheduler_sim PRIVATE
     scheduler_core
-    schedulers
     workloads
 )
 
