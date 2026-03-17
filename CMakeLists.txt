@@ -1,14 +1,15 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(SchedulerSimulator
-    VERSION 2.0.0
-    DESCRIPTION "Server Queue-Based Scheduler Simulator with Trace-Driven Workloads"
-    LANGUAGES CXX
+    VERSION 1.0.0
+    DESCRIPTION "Multi-Scheduler Multi-Workload Evaluation Framework"
+    LANGUAGES CXX C
 )
 
 # ============================================================================
 # Options
 # ============================================================================
+option(BUILD_TESTS "Build unit tests" OFF)
 option(ENABLE_SANITIZERS "Enable address sanitizers" OFF)
 option(ENABLE_LTO "Enable Link Time Optimization" OFF)
 
@@ -56,16 +57,95 @@ endif()
 # Output Directories
 # ============================================================================
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# ============================================================================
+# External C Library
+# ============================================================================
+add_library(random_lib STATIC
+    lib/rngs.c
+    lib/rvgs.c
+    lib/rvms.c
+    lib/rng.c
+)
+
+set_target_properties(random_lib PROPERTIES
+    C_STANDARD 99
+    POSITION_INDEPENDENT_CODE ON
+)
+
+target_include_directories(random_lib PUBLIC
+    ${PROJECT_SOURCE_DIR}/lib
+)
+
+# ============================================================================
+# Core Library
+# ============================================================================
+add_library(scheduler_core STATIC
+    src/core/task.cpp
+    src/core/event.cpp
+    src/core/simulator.cpp
+    src/core/metrics.cpp
+)
+
+target_include_directories(scheduler_core PUBLIC
+    ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(scheduler_core PUBLIC
+    random_lib
+)
+
+# ============================================================================
+# Schedulers Library
+# ============================================================================
+add_library(schedulers STATIC
+    src/schedulers/cfs_scheduler.cpp
+    src/schedulers/eevdf_scheduler.cpp
+    src/schedulers/mlfq_scheduler.cpp
+    src/schedulers/stride_scheduler.cpp
+)
+
+target_include_directories(schedulers PUBLIC
+    ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(schedulers PUBLIC
+    scheduler_core
+)
+
+# ============================================================================
+# Workloads Library
+# ============================================================================
+add_library(workloads STATIC
+    src/workloads/cpu_bound.cpp
+    src/workloads/io_bound.cpp
+    src/workloads/mixed.cpp
+    src/workloads/bursty.cpp
+    src/workloads/bimodal.cpp
+)
+
+target_include_directories(workloads PUBLIC
+    ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(workloads PUBLIC
+    scheduler_core
+    random_lib
+)
 
 # ============================================================================
 # Main Executable
 # ============================================================================
 add_executable(scheduler_sim
-    src/main.cpp
+    apps/main.cpp
 )
 
-target_include_directories(scheduler_sim PRIVATE
-    ${PROJECT_SOURCE_DIR}/include
+target_link_libraries(scheduler_sim PRIVATE
+    scheduler_core
+    schedulers
+    workloads
 )
 
 # Link math library on Unix
@@ -78,18 +158,21 @@ endif()
 # ============================================================================
 add_custom_target(run
     COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/scheduler_sim
-        ${PROJECT_SOURCE_DIR}/workloads/test_workload.csv all
     DEPENDS scheduler_sim
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    COMMENT "Running all schedulers on test workload"
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    COMMENT "Running scheduler simulation"
 )
 
 add_custom_target(quick-test
-    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/scheduler_sim
-        ${PROJECT_SOURCE_DIR}/workloads/test_workload.csv rr 10
+    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/scheduler_sim -n 10
     DEPENDS scheduler_sim
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    COMMENT "Running quick test (RR, 10 processes)"
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    COMMENT "Running quick test (10 tasks)"
+)
+
+add_custom_target(clean-results
+    COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/bin/results.csv
+    COMMENT "Removing result files"
 )
 
 # ============================================================================
@@ -105,6 +188,7 @@ message(STATUS "C++ Compiler: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "C++ Standard: C++${CMAKE_CXX_STANDARD}")
 message(STATUS "")
 message(STATUS "Options:")
+message(STATUS "  Tests:      ${BUILD_TESTS}")
 message(STATUS "  Sanitizers: ${ENABLE_SANITIZERS}")
 message(STATUS "  LTO:        ${ENABLE_LTO}")
 message(STATUS "========================================")
