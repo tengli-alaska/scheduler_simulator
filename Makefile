@@ -10,7 +10,7 @@ SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
 TARGET = $(BUILD_DIR)/scheduler_sim
 
-.PHONY: all clean
+.PHONY: all clean test run
 
 all: $(TARGET)
 
@@ -26,6 +26,10 @@ $(BUILD_DIR):
 clean:
 	rm -rf $(BUILD_DIR)
 
-# Run with a small subset for testing
+# Run all schedulers on test workload
+run: $(TARGET)
+	./$(TARGET) workloads/test_workload.csv all
+
+# Quick test with RR
 test: $(TARGET)
-	./$(TARGET) workloads/test_workload.csv rr 100
+	./$(TARGET) workloads/test_workload.csv rr

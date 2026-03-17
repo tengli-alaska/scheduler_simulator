@@ -1,2 +1,0 @@
-/Library/Developer/CommandLineTools/usr/bin/ar qc lib/libworkloads.a  CMakeFiles/workloads.dir/src/workloads/cpu_bound.cpp.o CMakeFiles/workloads.dir/src/workloads/io_bound.cpp.o CMakeFiles/workloads.dir/src/workloads/mixed.cpp.o CMakeFiles/workloads.dir/src/workloads/bursty.cpp.o CMakeFiles/workloads.dir/src/workloads/bimodal.cpp.o
-/Library/Developer/CommandLineTools/usr/bin/ranlib lib/libworkloads.a
