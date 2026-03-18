@@ -1,2 +1,0 @@
-/Library/Developer/CommandLineTools/usr/bin/ar qc lib/librandom_lib.a  CMakeFiles/random_lib.dir/lib/rngs.c.o CMakeFiles/random_lib.dir/lib/rvgs.c.o
-/Library/Developer/CommandLineTools/usr/bin/ranlib lib/librandom_lib.a

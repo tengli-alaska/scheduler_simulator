@@ -61,16 +61,20 @@ public:
     // Scheduling state (getters)
     double vruntime() const noexcept { return vruntime_; }
     double deadline() const noexcept { return deadline_; }
+    double eligible_time() const noexcept { return eligible_time_; }
     uint32_t stride() const noexcept { return stride_; }
     uint32_t pass_value() const noexcept { return pass_value_; }
     int current_queue() const noexcept { return current_queue_; }
-    
+    double allotment_remaining() const noexcept { return allotment_remaining_; }
+
     // Scheduling state (setters)
     void set_vruntime(double v) noexcept { vruntime_ = v; }
     void set_deadline(double d) noexcept { deadline_ = d; }
+    void set_eligible_time(double e) noexcept { eligible_time_ = e; }
     void set_stride(uint32_t s) noexcept { stride_ = s; }
     void set_pass_value(uint32_t p) noexcept { pass_value_ = p; }
     void set_current_queue(int q) noexcept { current_queue_ = q; }
+    void set_allotment_remaining(double a) noexcept { allotment_remaining_ = a; }
     
     // Execution tracking
     void start(double time);
@@ -103,9 +107,11 @@ private:
     // Scheduler-specific state
     double vruntime_ = 0.0;
     double deadline_ = 0.0;
+    double eligible_time_ = 0.0;
     uint32_t stride_ = 0;
     uint32_t pass_value_ = 0;
     int current_queue_ = 0;
+    double allotment_remaining_ = 0.0;
     
     // Execution tracking
     double start_time_ = -1.0;

@@ -1,2 +1,0 @@
-/Library/Developer/CommandLineTools/usr/bin/ar qc lib/libscheduler_core.a  CMakeFiles/scheduler_core.dir/src/core/task.cpp.o CMakeFiles/scheduler_core.dir/src/core/event.cpp.o CMakeFiles/scheduler_core.dir/src/core/simulator.cpp.o CMakeFiles/scheduler_core.dir/src/core/metrics.cpp.o
-/Library/Developer/CommandLineTools/usr/bin/ranlib lib/libscheduler_core.a

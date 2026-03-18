@@ -23,52 +23,50 @@ public:
      * @brief Construct a new Simulator
      * @param scheduler Unique pointer to scheduler instance
      * @param num_cores Number of CPU cores to simulate
-     * @param time_slice Time slice duration (milliseconds)
+     * @param default_time_slice Fallback time slice if scheduler returns 0 (ms)
      */
-    Simulator(SchedulerPtr scheduler, 
-              int num_cores = 1, 
-              double time_slice = 5.0);
-    
-    /**
-     * @brief Add a task to the simulation
-     * @param task Shared pointer to the task
-     */
+    Simulator(SchedulerPtr scheduler,
+              int num_cores = 1,
+              double default_time_slice = 5.0);
+
     void add_task(TaskPtr task);
-    
-    /**
-     * @brief Run the simulation until stop_time
-     * @param stop_time Time to stop simulation
-     */
     void run(double stop_time);
-    
+
     // Getters
     const std::vector<TaskPtr>& completed_tasks() const noexcept {
         return completed_tasks_;
     }
-    
+
     double current_time() const noexcept { return current_time_; }
     int num_cores() const noexcept { return num_cores_; }
-    double time_slice() const noexcept { return time_slice_; }
-    
+
     const Scheduler* scheduler() const noexcept { return scheduler_.get(); }
-    
+
+    // Statistics
+    uint32_t context_switches() const noexcept { return context_switches_; }
+    uint32_t preemptions() const noexcept { return preemptions_; }
+
 private:
     void handle_arrival(const Event& evt);
     void handle_time_slice(const Event& evt);
-    void schedule_task_on_core(int core_id);
-    
+    void preempt_core(int core_id);
+    void dispatch_next(int core_id);
+
     SchedulerPtr scheduler_;
     EventQueue events_;
-    
+
     int num_cores_;
-    double time_slice_;
+    double default_time_slice_;
     double current_time_ = 0.0;
     double stop_time_ = 0.0;
-    
-    std::vector<TaskPtr> running_tasks_;      // Task per core
-    std::vector<double> last_event_time_;     // Last event time per core
+
+    std::vector<TaskPtr> running_tasks_;
+    std::vector<double> last_event_time_;
     std::vector<TaskPtr> all_tasks_;
     std::vector<TaskPtr> completed_tasks_;
+
+    uint32_t context_switches_ = 0;
+    uint32_t preemptions_ = 0;
 };
 
 } // namespace sched_sim
