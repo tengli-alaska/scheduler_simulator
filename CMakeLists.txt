@@ -119,11 +119,8 @@ target_link_libraries(schedulers PUBLIC
 # Workloads Library
 # ============================================================================
 add_library(workloads STATIC
-    src/workloads/cpu_bound.cpp
-    src/workloads/io_bound.cpp
-    src/workloads/mixed.cpp
-    src/workloads/bursty.cpp
-    src/workloads/bimodal.cpp
+    src/workloads/server_workload.cpp
+    src/workloads/desktop_workload.cpp
 )
 
 target_include_directories(workloads PUBLIC

@@ -11,12 +11,12 @@ std::vector<TaskPtr> MixedWorkload::generate(uint32_t num_tasks) {
     std::vector<TaskPtr> tasks;
     tasks.reserve(num_tasks);
     
-    double current_time = 0.0;
+    double arrival_time = 0.0;
     
     SelectStream(0);
     
     for (uint32_t i = 0; i < num_tasks; ++i) {
-        current_time += Exponential(1.5);
+        arrival_time += Exponential(1.5);
         
         SelectStream(1);
         double r = Random();
@@ -37,7 +37,7 @@ std::vector<TaskPtr> MixedWorkload::generate(uint32_t num_tasks) {
             nice = 10;
         }
         
-        tasks.push_back(std::make_shared<Task>(i, current_time, exec_time, nice));
+        tasks.push_back(std::make_shared<Task>(i, arrival_time, exec_time, nice));
         
         SelectStream(0);
     }

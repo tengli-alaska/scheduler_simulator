@@ -37,7 +37,6 @@ void Metrics::calculate(const std::vector<TaskPtr>& completed_tasks, double tota
     
     // Calculate percentiles
     std::sort(response_times.begin(), response_times.end());
-    median_response_time = response_times[num_completed / 2];
     p95_response_time = response_times[static_cast<size_t>(num_completed * 0.95)];
     p99_response_time = response_times[static_cast<size_t>(num_completed * 0.99)];
     
@@ -45,15 +44,16 @@ void Metrics::calculate(const std::vector<TaskPtr>& completed_tasks, double tota
     throughput = num_completed / total_time;
     utilization = total_exec_time / total_time;
     
-    // Fairness (coefficient of variation)
-    double variance = 0.0;
-    for (double tt : turnaround_times) {
-        double diff = tt - mean_turnaround_time;
-        variance += diff * diff;
+    // Jain's Fairness Index: J = (sum(x_i))^2 / (n * sum(x_i^2))
+    // where x_i = execution_time / turnaround_time (normalized throughput per task)
+    double sum_x = 0.0;
+    double sum_x2 = 0.0;
+    for (size_t i = 0; i < num_completed; ++i) {
+        double x = completed_tasks[i]->execution_time() / turnaround_times[i];
+        sum_x += x;
+        sum_x2 += x * x;
     }
-    variance /= num_completed;
-    double stddev = std::sqrt(variance);
-    fairness_cv = stddev / mean_turnaround_time;
+    jains_fairness = (sum_x * sum_x) / (num_completed * sum_x2);
 }
 
 void Metrics::print(const std::string& scheduler_name, 
@@ -65,7 +65,6 @@ void Metrics::print(const std::string& scheduler_name,
     std::cout << std::fixed << std::setprecision(2);
     std::cout << "Completed tasks:      " << num_completed << "\n";
     std::cout << "Mean response time:   " << mean_response_time << " ms\n";
-    std::cout << "Median response time: " << median_response_time << " ms\n";
     std::cout << "P95 response time:    " << p95_response_time << " ms\n";
     std::cout << "P99 response time:    " << p99_response_time << " ms\n";
     std::cout << "Mean turnaround time: " << mean_turnaround_time << " ms\n";
@@ -74,7 +73,7 @@ void Metrics::print(const std::string& scheduler_name,
     std::cout << "Throughput:           " << throughput << " tasks/s\n";
     std::cout << "Utilization:          " << (utilization * 100) << " %\n";
     std::cout << std::setprecision(4);
-    std::cout << "Fairness (CV):        " << fairness_cv << "\n";
+    std::cout << "Jain's Fairness:      " << jains_fairness << "\n";
     std::cout << "Context switches:     " << context_switches << "\n";
     std::cout << "Preemptions:          " << preemptions << "\n";
     std::cout << "========================================\n";
@@ -87,13 +86,12 @@ void Metrics::to_csv(const std::string& scheduler_name,
         << workload_name << ","
         << num_completed << ","
         << mean_response_time << ","
-        << median_response_time << ","
         << p95_response_time << ","
         << p99_response_time << ","
         << mean_turnaround_time << ","
         << mean_wait_time << ","
         << throughput << ","
-        << fairness_cv << ","
+        << jains_fairness << ","
         << context_switches << ","
         << preemptions << "\n";
 }
