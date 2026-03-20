@@ -19,14 +19,13 @@ namespace sched_sim {
 struct Metrics {
     uint32_t num_completed = 0;
     double mean_response_time = 0.0;
-    double median_response_time = 0.0;
     double p95_response_time = 0.0;
     double p99_response_time = 0.0;
     double mean_turnaround_time = 0.0;
     double mean_wait_time = 0.0;
     double throughput = 0.0;
     double utilization = 0.0;
-    double fairness_cv = 0.0;  // Coefficient of variation
+    double jains_fairness = 0.0;  // Jain's Fairness Index [0, 1]
     uint32_t context_switches = 0;
     uint32_t preemptions = 0;
     
