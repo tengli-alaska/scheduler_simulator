@@ -4,6 +4,7 @@
  */
 
 #include "scheduler/simulator.hpp"
+#include "scheduler/multi_core_simulator.hpp"
 #include "scheduler/metrics.hpp"
 #include "scheduler/workload.hpp"
 #include "schedulers/cfs_scheduler.hpp"
@@ -19,6 +20,7 @@
 #include <string>
 #include <cstring>
 #include <algorithm>
+#include <sys/stat.h>
 
 extern "C" {
     #include "rngs.h"
@@ -39,6 +41,9 @@ struct Config {
     double stop_time = 10000.0;
     std::string scheduler_filter = "all";
     std::string workload_filter = "all";
+    std::string topology = "sq";          // "sq" = single-queue, "mq" = multi-queue
+    std::string balancer = "leastloaded"; // "rr" = round-robin, "leastloaded"
+    bool work_stealing = true;
 };
 
 void print_banner() {
@@ -46,8 +51,9 @@ void print_banner() {
     std::cout << "====================================================\n";
     std::cout << "  MULTI-SCHEDULER MULTI-WORKLOAD EVALUATION\n";
     std::cout << "  \n";
-    std::cout << "  Schedulers: CFS, EEVDF, MLFQ, Stride\n";
-    std::cout << "  Workloads:  Server, Desktop\n";
+    std::cout << "  Schedulers:  CFS, EEVDF, MLFQ, Stride\n";
+    std::cout << "  Workloads:   Server, Desktop\n";
+    std::cout << "  Topologies:  Single-Queue, Multi-Queue\n";
     std::cout << "====================================================\n";
     std::cout << "\n";
 }
@@ -63,12 +69,20 @@ void print_usage(const char* program_name) {
     std::cout << "                 Options: cfs, eevdf, mlfq, stride, all\n";
     std::cout << "  -w <workload>  Workload to use (default: all)\n";
     std::cout << "                 Options: server, desktop, all\n";
+    std::cout << "  -m <topology>  Queue topology (default: sq)\n";
+    std::cout << "                 sq = single-queue multi-server (shared queue)\n";
+    std::cout << "                 mq = multi-queue multi-server (per-core queues)\n";
+    std::cout << "  -b <balancer>  Load balancer for mq topology (default: leastloaded)\n";
+    std::cout << "                 rr = round-robin, leastloaded = least-loaded\n";
+    std::cout << "  --no-steal     Disable work stealing in mq topology\n";
     std::cout << "  -h             Show this help message\n";
     std::cout << "\n";
     std::cout << "Examples:\n";
     std::cout << "  " << program_name << " -n 200 -c 2\n";
     std::cout << "  " << program_name << " -s cfs -w server\n";
     std::cout << "  " << program_name << " -s eevdf -w desktop -n 50\n";
+    std::cout << "  " << program_name << " -m mq -c 4 -b leastloaded\n";
+    std::cout << "  " << program_name << " -m mq -c 4 -b rr --no-steal\n";
     std::cout << "\n";
 }
 
@@ -88,6 +102,12 @@ Config parse_args(int argc, char* argv[]) {
             config.scheduler_filter = to_lower(argv[++i]);
         } else if (std::strcmp(argv[i], "-w") == 0 && i + 1 < argc) {
             config.workload_filter = to_lower(argv[++i]);
+        } else if (std::strcmp(argv[i], "-m") == 0 && i + 1 < argc) {
+            config.topology = to_lower(argv[++i]);
+        } else if (std::strcmp(argv[i], "-b") == 0 && i + 1 < argc) {
+            config.balancer = to_lower(argv[++i]);
+        } else if (std::strcmp(argv[i], "--no-steal") == 0) {
+            config.work_stealing = false;
         } else if (std::strcmp(argv[i], "-h") == 0 || std::strcmp(argv[i], "--help") == 0) {
             print_usage(argv[0]);
             std::exit(0);
@@ -138,6 +158,52 @@ void run_experiment(
     metrics.to_csv(scheduler_name, workload_gen.name(), csv_out);
 }
 
+void run_experiment_mq(
+    std::function<SchedulerPtr()> scheduler_factory,
+    const std::string& scheduler_name,
+    WorkloadGenerator& workload_gen,
+    const Config& config,
+    std::ostream& csv_out)
+{
+    std::cout << "\n[" << scheduler_name << " on " << workload_gen.name()
+              << " (multi-queue, " << config.balancer << ")]\n";
+
+    // Generate workload
+    auto tasks = workload_gen.generate(config.num_tasks);
+
+    // Create load balancer
+    LoadBalancerPtr balancer;
+    if (config.balancer == "rr") {
+        balancer = std::make_unique<RoundRobinBalancer>();
+    } else {
+        balancer = std::make_unique<LeastLoadedBalancer>();
+    }
+
+    // Create multi-core simulator
+    MultiCoreSimulator sim(scheduler_factory, config.num_cores,
+                           std::move(balancer), config.work_stealing);
+
+    // Add tasks
+    for (auto& task : tasks) {
+        sim.add_task(task);
+    }
+
+    // Run simulation
+    sim.run(config.stop_time);
+
+    // Calculate metrics
+    Metrics metrics;
+    metrics.calculate(sim.completed_tasks(), sim.current_time());
+    metrics.context_switches = sim.context_switches();
+    metrics.preemptions = sim.preemptions();
+
+    // Print results
+    metrics.print(scheduler_name, workload_gen.name());
+
+    // Write to CSV
+    metrics.to_csv(scheduler_name, workload_gen.name(), csv_out);
+}
+
 int main(int argc, char* argv[]) {
     print_banner();
     
@@ -150,18 +216,34 @@ int main(int argc, char* argv[]) {
     std::cout << "  Stop time:          " << config.stop_time << "\n";
     std::cout << "  Scheduler:          " << config.scheduler_filter << "\n";
     std::cout << "  Workload:           " << config.workload_filter << "\n";
+    std::cout << "  Topology:           " << (config.topology == "mq" ? "multi-queue" : "single-queue") << "\n";
+    if (config.topology == "mq") {
+        std::cout << "  Load balancer:      " << config.balancer << "\n";
+        std::cout << "  Work stealing:      " << (config.work_stealing ? "on" : "off") << "\n";
+    }
     std::cout << "\n";
     
     // Initialize RNG
     PlantSeeds(123456789L);
-    
+
+    // Create runs/ directory
+    mkdir("runs", 0755);
+
+    // Build filename from parameters: runs/n20_c4_s-cfs_w-server_r1.csv
+    std::string csv_filename = "runs/n" + std::to_string(config.num_tasks)
+        + "_c" + std::to_string(config.num_cores)
+        + "_s-" + config.scheduler_filter
+        + "_w-" + config.workload_filter
+        + "_r" + std::to_string(config.num_replications)
+        + ".csv";
+
     // Open CSV output
-    std::ofstream csv_file("results.csv");
+    std::ofstream csv_file(csv_filename);
     if (!csv_file) {
-        std::cerr << "Error: Could not open results.csv for writing\n";
+        std::cerr << "Error: Could not open " << csv_filename << " for writing\n";
         return 1;
     }
-    
+
     csv_file << "Scheduler,Workload,Completed,MeanRT,"
              << "P95RT,P99RT,MeanTAT,MeanWT,Throughput,JainsFairness,"
              << "ContextSwitches,Preemptions\n";
@@ -251,8 +333,13 @@ int main(int argc, char* argv[]) {
                 long seed = 123456789L + (rep * 1000);
                 PlantSeeds(seed);
                 
-                run_experiment(sched_factory, sched_name, *workload_gen, 
-                             config, csv_file);
+                if (config.topology == "mq") {
+                    run_experiment_mq(sched_factory, sched_name, *workload_gen,
+                                     config, csv_file);
+                } else {
+                    run_experiment(sched_factory, sched_name, *workload_gen,
+                                 config, csv_file);
+                }
             }
         }
     }
@@ -264,7 +351,7 @@ int main(int argc, char* argv[]) {
     std::cout << "  ALL EXPERIMENTS COMPLETED\n";
     std::cout << "====================================================\n";
     std::cout << "\n";
-    std::cout << "Results saved to: results.csv\n";
+    std::cout << "Results saved to: " << csv_filename << "\n";
     std::cout << "\n";
     
     return 0;

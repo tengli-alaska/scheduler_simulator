@@ -67,7 +67,6 @@ add_library(random_lib STATIC
     lib/rngs.c
     lib/rvgs.c
     lib/rvms.c
-    lib/rng.c
 )
 
 set_target_properties(random_lib PROPERTIES
@@ -86,6 +85,7 @@ add_library(scheduler_core STATIC
     src/core/task.cpp
     src/core/event.cpp
     src/core/simulator.cpp
+    src/core/multi_core_simulator.cpp
     src/core/metrics.cpp
 )
 

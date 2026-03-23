@@ -1,4 +1,5 @@
 build/
+cmake-build/
 *.o
 *.a
 *.so
@@ -7,3 +8,7 @@ build/
 *.json.gz
 real-time-workloads/google_v3_workload_full.csv
 compile_commands.json
+runs/
+results.csv
+*.csv
+!workloads/*.csv
