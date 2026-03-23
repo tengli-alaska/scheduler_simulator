@@ -12,4 +12,3 @@ runs/
 results.csv
 *.csv
 !workloads/*.csv
-!real-time-workloads/*.csv
