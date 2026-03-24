@@ -69,7 +69,7 @@ void MultiCoreSimulator::handle_arrival(const Event& evt) {
     int target_core = balancer_->assign(task, schedulers_, running_tasks_);
 
     // Add to that core's scheduler
-    schedulers_[target_core]->add_task(task, current_time_);
+    schedulers_[target_core]->add_task(task, current_time_, target_core);
 
     // If target core is idle, dispatch immediately
     if (!running_tasks_[target_core]) {
@@ -78,7 +78,8 @@ void MultiCoreSimulator::handle_arrival(const Event& evt) {
     }
 
     // Check if new task should preempt the running task on target core
-    if (schedulers_[target_core]->should_preempt(task, running_tasks_[target_core], current_time_)) {
+    if (schedulers_[target_core]->should_preempt(task, running_tasks_[target_core],
+                                                 current_time_, target_core)) {
         preempt_core(target_core);
         dispatch_next(target_core);
     }
@@ -100,7 +101,7 @@ void MultiCoreSimulator::handle_time_slice(const Event& evt) {
     task->execute(elapsed);
 
     // Notify this core's scheduler of CPU usage
-    schedulers_[core_id]->on_cpu_used(task, elapsed, current_time_);
+    schedulers_[core_id]->on_cpu_used(task, elapsed, current_time_, core_id);
 
     // Check if completed
     if (task->is_completed()) {
@@ -112,7 +113,7 @@ void MultiCoreSimulator::handle_time_slice(const Event& evt) {
         task->increment_preemptions();
         preemptions_++;
         running_tasks_[core_id] = nullptr;
-        schedulers_[core_id]->add_task(task, current_time_);
+        schedulers_[core_id]->add_task(task, current_time_, core_id);
     }
 
     // Try to dispatch next task from this core's queue
@@ -126,7 +127,7 @@ void MultiCoreSimulator::preempt_core(int core_id) {
     // Account for CPU time used so far
     double elapsed = current_time_ - last_event_time_[core_id];
     task->execute(elapsed);
-    schedulers_[core_id]->on_cpu_used(task, elapsed, current_time_);
+    schedulers_[core_id]->on_cpu_used(task, elapsed, current_time_, core_id);
 
     // Cancel pending time slice event
     events_.cancel_task(task);
@@ -135,7 +136,7 @@ void MultiCoreSimulator::preempt_core(int core_id) {
     task->increment_preemptions();
     preemptions_++;
     running_tasks_[core_id] = nullptr;
-    schedulers_[core_id]->add_task(task, current_time_);
+    schedulers_[core_id]->add_task(task, current_time_, core_id);
 
     context_switches_++;
 }
@@ -143,7 +144,7 @@ void MultiCoreSimulator::preempt_core(int core_id) {
 void MultiCoreSimulator::dispatch_next(int core_id) {
     // First try this core's own queue
     if (schedulers_[core_id]->ready_count() > 0) {
-        ScheduleDecision decision = schedulers_[core_id]->schedule(current_time_);
+        ScheduleDecision decision = schedulers_[core_id]->schedule(current_time_, core_id);
         if (decision.task) {
             TaskPtr task = decision.task;
             schedulers_[core_id]->remove_task(task->id());
@@ -187,19 +188,19 @@ bool MultiCoreSimulator::try_work_steal(int idle_core) {
     if (busiest_core < 0) return false;
 
     // Steal the next-to-run task from the busiest core
-    ScheduleDecision decision = schedulers_[busiest_core]->schedule(current_time_);
+    ScheduleDecision decision = schedulers_[busiest_core]->schedule(current_time_, busiest_core);
     if (!decision.task) return false;
 
     TaskPtr stolen = decision.task;
     schedulers_[busiest_core]->remove_task(stolen->id());
 
     // Add to idle core's scheduler and dispatch
-    schedulers_[idle_core]->add_task(stolen, current_time_);
+    schedulers_[idle_core]->add_task(stolen, current_time_, idle_core);
 
     work_steals_++;
 
     // Now dispatch from idle core's queue
-    ScheduleDecision local_decision = schedulers_[idle_core]->schedule(current_time_);
+    ScheduleDecision local_decision = schedulers_[idle_core]->schedule(current_time_, idle_core);
     if (!local_decision.task) return false;
 
     TaskPtr task = local_decision.task;

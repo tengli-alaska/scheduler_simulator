@@ -24,7 +24,8 @@ public:
     explicit SingleQueueScheduler(Comparator cmp)
         : comparator_(std::move(cmp)) {}
 
-    void add_task(TaskPtr task, double /*current_time*/) override {
+    void add_task(TaskPtr task, double /*current_time*/,
+                  int /*preferred_core*/ = -1) override {
         ready_queue_.push_back(task);
     }
 

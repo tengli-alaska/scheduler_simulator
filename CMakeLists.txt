@@ -103,6 +103,7 @@ target_link_libraries(scheduler_core PUBLIC
 add_library(workloads STATIC
     src/workloads/server_workload.cpp
     src/workloads/desktop_workload.cpp
+    src/workloads/trace_replay_workload.cpp
 )
 
 target_include_directories(workloads PUBLIC

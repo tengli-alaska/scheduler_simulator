@@ -34,6 +34,14 @@ std::string to_lower(const std::string& s) {
     return result;
 }
 
+bool is_valid_topology(const std::string& topology) {
+    return topology == "sq" || topology == "mq";
+}
+
+bool is_valid_balancer(const std::string& balancer) {
+    return balancer == "rr" || balancer == "leastloaded";
+}
+
 struct Config {
     uint32_t num_tasks = 100;
     int num_cores = 1;
@@ -68,7 +76,7 @@ void print_usage(const char* program_name) {
     std::cout << "  -s <scheduler> Scheduler to use (default: all)\n";
     std::cout << "                 Options: cfs, eevdf, mlfq, stride, all\n";
     std::cout << "  -w <workload>  Workload to use (default: all)\n";
-    std::cout << "                 Options: server, desktop, all\n";
+    std::cout << "                 Options: server, desktop, google, alibaba, all\n";
     std::cout << "  -m <topology>  Queue topology (default: sq)\n";
     std::cout << "                 sq = single-queue multi-server (shared queue)\n";
     std::cout << "                 mq = multi-queue multi-server (per-core queues)\n";
@@ -83,6 +91,7 @@ void print_usage(const char* program_name) {
     std::cout << "  " << program_name << " -s eevdf -w desktop -n 50\n";
     std::cout << "  " << program_name << " -m mq -c 4 -b leastloaded\n";
     std::cout << "  " << program_name << " -m mq -c 4 -b rr --no-steal\n";
+    std::cout << "  " << program_name << " -s stride -c 4 -n 500\n";
     std::cout << "\n";
 }
 
@@ -119,6 +128,35 @@ Config parse_args(int argc, char* argv[]) {
     }
     
     return config;
+}
+
+void validate_config_or_exit(const Config& config) {
+    if (config.num_tasks == 0) {
+        std::cerr << "Error: Number of tasks must be >= 1\n";
+        std::exit(1);
+    }
+    if (config.num_cores < 1) {
+        std::cerr << "Error: Number of CPU cores must be >= 1\n";
+        std::exit(1);
+    }
+    if (config.num_replications < 1) {
+        std::cerr << "Error: Number of replications must be >= 1\n";
+        std::exit(1);
+    }
+    if (config.stop_time <= 0.0) {
+        std::cerr << "Error: Stop time must be > 0\n";
+        std::exit(1);
+    }
+    if (!is_valid_topology(config.topology)) {
+        std::cerr << "Error: Unknown topology '" << config.topology << "'\n";
+        std::cerr << "Valid options: sq, mq\n";
+        std::exit(1);
+    }
+    if (!is_valid_balancer(config.balancer)) {
+        std::cerr << "Error: Unknown load balancer '" << config.balancer << "'\n";
+        std::cerr << "Valid options: rr, leastloaded\n";
+        std::exit(1);
+    }
 }
 
 void run_experiment(
@@ -208,6 +246,7 @@ int main(int argc, char* argv[]) {
     print_banner();
     
     Config config = parse_args(argc, argv);
+    validate_config_or_exit(config);
     
     std::cout << "Configuration:\n";
     std::cout << "  Tasks per workload: " << config.num_tasks << "\n";
@@ -235,7 +274,12 @@ int main(int argc, char* argv[]) {
         + "_s-" + config.scheduler_filter
         + "_w-" + config.workload_filter
         + "_r" + std::to_string(config.num_replications)
-        + ".csv";
+        + "_m-" + config.topology;
+    if (config.topology == "mq") {
+        csv_filename += "_b-" + config.balancer;
+        csv_filename += std::string("_steal-") + (config.work_stealing ? "on" : "off");
+    }
+    csv_filename += ".csv";
 
     // Open CSV output
     std::ofstream csv_file(csv_filename);
@@ -282,6 +326,8 @@ int main(int argc, char* argv[]) {
     std::vector<WorkloadEntry> all_workloads;
     all_workloads.push_back({"server", std::make_unique<ServerWorkload>()});
     all_workloads.push_back({"desktop", std::make_unique<DesktopWorkload>()});
+    all_workloads.push_back({"google", std::make_unique<TraceReplayWorkload>(TraceType::GoogleV3)});
+    all_workloads.push_back({"alibaba", std::make_unique<TraceReplayWorkload>(TraceType::AlibabaV2018)});
 
     // Filter workloads
     std::vector<std::unique_ptr<WorkloadGenerator>> workloads;
@@ -298,7 +344,7 @@ int main(int argc, char* argv[]) {
         }
         if (workloads.empty()) {
             std::cerr << "Error: Unknown workload '" << config.workload_filter << "'\n";
-            std::cerr << "Valid options: server, desktop, all\n";
+            std::cerr << "Valid options: server, desktop, google, alibaba, all\n";
             return 1;
         }
     }

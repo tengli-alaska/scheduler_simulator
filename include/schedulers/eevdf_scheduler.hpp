@@ -32,7 +32,8 @@ public:
 
     std::string name() const override { return "EEVDF"; }
 
-    void add_task(TaskPtr task, double /*current_time*/) override {
+    void add_task(TaskPtr task, double /*current_time*/,
+                  int /*preferred_core*/ = -1) override {
         if (task->start_time() < 0) {
             task->set_eligible_time(virtual_time_);
             task->set_vruntime(virtual_time_);
@@ -48,7 +49,7 @@ public:
         SingleQueueScheduler::add_task(task, 0);
     }
 
-    ScheduleDecision schedule(double /*current_time*/) override {
+    ScheduleDecision schedule(double /*current_time*/, int /*core_id*/ = -1) override {
         // Find eligible task with earliest virtual deadline
         TaskPtr best = nullptr;
         double best_deadline = std::numeric_limits<double>::max();
@@ -73,7 +74,8 @@ public:
         return {best, slice};
     }
 
-    void on_cpu_used(TaskPtr task, double cpu_time, double /*current_time*/) override {
+    void on_cpu_used(TaskPtr task, double cpu_time, double /*current_time*/,
+                     int /*core_id*/ = -1) override {
         double delta_vruntime = cpu_time * NICE_0_LOAD / static_cast<double>(task->weight());
         task->set_vruntime(task->vruntime() + delta_vruntime);
 
@@ -85,7 +87,7 @@ public:
     }
 
     bool should_preempt(TaskPtr new_task, TaskPtr current_task,
-                        double /*current_time*/) override {
+                        double /*current_time*/, int /*core_id*/ = -1) override {
         if (!current_task) return true;
         if (new_task->eligible_time() <= virtual_time_ + 1e-9) {
             return new_task->deadline() < current_task->deadline();

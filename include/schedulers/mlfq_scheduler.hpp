@@ -45,17 +45,18 @@ public:
 
     std::string name() const override { return "MLFQ"; }
 
-    void add_task(TaskPtr task, double current_time) override {
+    void add_task(TaskPtr task, double current_time,
+                  int preferred_core = -1) override {
         if (task->start_time() < 0) {
             // Rule 3: new tasks start at highest priority
             task->set_current_queue(0);
             task->set_allotment_remaining(allotment_for_level(0));
         }
         // Returning tasks keep their current queue level
-        MultiQueueScheduler::add_task(task, current_time);
+        MultiQueueScheduler::add_task(task, current_time, preferred_core);
     }
 
-    ScheduleDecision schedule(double /*current_time*/) override {
+    ScheduleDecision schedule(double /*current_time*/, int /*core_id*/ = -1) override {
         // Rule 1 & 2: find highest-priority non-empty queue, take front (RR)
         TaskPtr best = find_best();
         if (!best) return {nullptr, 0.0};
@@ -66,7 +67,8 @@ public:
         return {best, quantum};
     }
 
-    void on_cpu_used(TaskPtr task, double cpu_time, double current_time) override {
+    void on_cpu_used(TaskPtr task, double cpu_time, double current_time,
+                     int /*core_id*/ = -1) override {
         // Rule 4: track allotment
         task->set_allotment_remaining(task->allotment_remaining() - cpu_time);
 
@@ -89,7 +91,7 @@ public:
     }
 
     bool should_preempt(TaskPtr new_task, TaskPtr current_task,
-                        double /*current_time*/) override {
+                        double /*current_time*/, int /*core_id*/ = -1) override {
         if (!current_task) return true;
         // Preempt if the new task is in a higher-priority queue
         return new_task->current_queue() < current_task->current_queue();
