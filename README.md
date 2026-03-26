@@ -18,16 +18,13 @@ A C++17 discrete-event simulator for evaluating CPU scheduling policies across s
 
 ### Option 1 — SQSS: Single-Queue Single-Server (`-c 1 -m sq`)
 
-```
-  Arriving Tasks
-       |
-       v
- +------------+
- | Ready Queue|   <-- one shared queue
- +------------+
-       |
-       v
-   [ Core 0 ]      <-- one CPU core
+```mermaid
+flowchart LR
+    T(["Arriving Tasks"])
+    Q[/"Ready Queue"\]
+    C(["Core 0"])
+
+    T --> Q --> C
 ```
 
 One queue, one core. Simplest baseline. All schedulers run in pure single-core mode.
@@ -36,55 +33,85 @@ One queue, one core. Simplest baseline. All schedulers run in pure single-core m
 
 ### Option 2 — SQMS: Single-Queue Multi-Server (`-c N -m sq`)
 
-```
-  Arriving Tasks
-       |
-       v
- +---------------------+
- |   Shared Ready Queue|   <-- one queue, N cores competing
- +---------------------+
-     |       |       |       |
-     v       v       v       v
- [Core 0] [Core 1] [Core 2] [Core 3]
+```mermaid
+flowchart LR
+    T(["Arriving Tasks"])
+    Q[/"Shared Ready Queue"\]
+    C0(["Core 0"])
+    C1(["Core 1"])
+    C2(["Core 2"])
+    C3(["Core 3"])
+
+    T --> Q
+    Q --> C0
+    Q --> C1
+    Q --> C2
+    Q --> C3
 ```
 
-One shared queue across all cores. Cores pull the next task whenever they go idle.
-Higher throughput than SQSS but queue access becomes a contention point at scale.
+One shared queue across all cores. Cores pull the next task whenever they go idle. Higher throughput than SQSS but queue access becomes a contention point at scale.
 
 ---
 
 ### Option 3 — MQMS: Multi-Queue Multi-Server (`-c N -m mq`)
 
-```
-  Arriving Tasks
-       |
-       v
- [ Load Balancer ]   <-- RoundRobin or LeastLoaded
-   /   |   |   \
-  v    v   v    v
- Q0   Q1  Q2   Q3    <-- per-core ready queues
-  |    |   |    |
-  v    v   v    v
- C0   C1  C2   C3    <-- each core runs its own scheduler
+```mermaid
+flowchart TB
+    T(["Arriving Tasks"])
+    LB{{"Load Balancer\nRoundRobin | LeastLoaded"}}
 
-          ^
-          |
-   Work Stealing:
-   idle core scans
-   busiest queue and
-   pulls a task
+    subgraph Core0["Core 0"]
+        Q0[/"Queue 0"\] --> C0(["Scheduler 0"])
+    end
+    subgraph Core1["Core 1"]
+        Q1[/"Queue 1"\] --> C1(["Scheduler 1"])
+    end
+    subgraph Core2["Core 2"]
+        Q2[/"Queue 2"\] --> C2(["Scheduler 2"])
+    end
+    subgraph Core3["Core 3"]
+        Q3[/"Queue 3"\] --> C3(["Scheduler 3"])
+    end
+
+    WS(["Work Stealing\nidle core pulls from\nbusiest queue"])
+
+    T --> LB
+    LB --> Q0
+    LB --> Q1
+    LB --> Q2
+    LB --> Q3
+
+    Q0 -.->|steal| WS
+    WS -.->|dispatch| C3
 ```
 
-Each core has its own independent scheduler queue. A load balancer assigns arriving tasks to a core at arrival time. If a core goes idle and all queues are empty, it steals from the busiest core's queue.
+Each core has its own independent scheduler queue. A load balancer assigns arriving tasks to a core at arrival. If a core goes idle, it steals from the busiest core's queue.
 
 ---
 
 ## Scheduler Hierarchy
 
-```
-SingleQueueScheduler (base)        MultiQueueScheduler (base)
-     |       |        |                      |
-    CFS    EEVDF   Stride                  MLFQ
+```mermaid
+classDiagram
+    class Scheduler {
+        <<interface>>
+        +add_task()
+        +schedule()
+        +should_preempt()
+        +on_cpu_used()
+    }
+    class SingleQueueScheduler {
+        <<base>>
+    }
+    class MultiQueueScheduler {
+        <<base>>
+    }
+    Scheduler <|-- SingleQueueScheduler
+    Scheduler <|-- MultiQueueScheduler
+    SingleQueueScheduler <|-- CFS
+    SingleQueueScheduler <|-- EEVDF
+    SingleQueueScheduler <|-- Stride
+    MultiQueueScheduler <|-- MLFQ
 ```
 
 | Scheduler | Strategy | Key Property |
