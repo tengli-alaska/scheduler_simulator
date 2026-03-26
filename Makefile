@@ -11,11 +11,13 @@ C_SRCS = lib/rngs.c lib/rvgs.c lib/rvms.c
 C_OBJS = $(C_SRCS:lib/%.c=$(BUILD_DIR)/%.o)
 
 # C++ core sources
-CXX_CORE_SRCS = src/core/task.cpp src/core/event.cpp src/core/simulator.cpp src/core/metrics.cpp
+CXX_CORE_SRCS = src/core/task.cpp src/core/event.cpp src/core/simulator.cpp src/core/multi_core_simulator.cpp src/core/metrics.cpp
 CXX_CORE_OBJS = $(CXX_CORE_SRCS:src/core/%.cpp=$(BUILD_DIR)/core_%.o)
 
-# C++ workload sources
-CXX_WL_SRCS = $(wildcard src/workloads/*.cpp)
+# C++ workload sources (aligned with include/scheduler/workload.hpp)
+# Keep this list explicit so legacy workload files don't break the build.
+CXX_WL_SRCS = src/workloads/server_workload.cpp src/workloads/desktop_workload.cpp
+CXX_WL_SRCS += src/workloads/trace_replay_workload.cpp
 CXX_WL_OBJS = $(CXX_WL_SRCS:src/workloads/%.cpp=$(BUILD_DIR)/wl_%.o)
 
 # Main

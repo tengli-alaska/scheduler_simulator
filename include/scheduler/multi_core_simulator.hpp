@@ -56,7 +56,7 @@ public:
     uint32_t preemptions() const noexcept { return preemptions_; }
     uint32_t work_steals() const noexcept { return work_steals_; }
 
-    const std::string& balancer_name() const { return balancer_->name(); }
+    std::string balancer_name() const { return balancer_->name(); }
 
 private:
     void handle_arrival(const Event& evt);

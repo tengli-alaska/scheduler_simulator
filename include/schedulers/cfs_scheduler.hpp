@@ -37,7 +37,8 @@ public:
 
     std::string name() const override { return "CFS"; }
 
-    void add_task(TaskPtr task, double current_time) override {
+    void add_task(TaskPtr task, double current_time,
+                  int /*preferred_core*/ = -1) override {
         if (task->start_time() < 0) {
             // Brand new task: set vruntime to current min to be fair
             task->set_vruntime(min_vruntime_);
@@ -50,7 +51,7 @@ public:
         SingleQueueScheduler::add_task(task, current_time);
     }
 
-    ScheduleDecision schedule(double /*current_time*/) override {
+    ScheduleDecision schedule(double /*current_time*/, int /*core_id*/ = -1) override {
         TaskPtr best = find_best();
         if (!best) return {nullptr, 0.0};
 
@@ -60,14 +61,15 @@ public:
         return {best, time_slice};
     }
 
-    void on_cpu_used(TaskPtr task, double cpu_time, double /*current_time*/) override {
+    void on_cpu_used(TaskPtr task, double cpu_time, double /*current_time*/,
+                     int /*core_id*/ = -1) override {
         double delta_vruntime = cpu_time * NICE_0_LOAD / static_cast<double>(task->weight());
         task->set_vruntime(task->vruntime() + delta_vruntime);
         update_min_vruntime();
     }
 
     bool should_preempt(TaskPtr new_task, TaskPtr current_task,
-                        double /*current_time*/) override {
+                        double /*current_time*/, int /*core_id*/ = -1) override {
         if (!current_task) return true;
         double gran = params_.wakeup_granularity *
                       NICE_0_LOAD / static_cast<double>(current_task->weight());

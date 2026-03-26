@@ -52,7 +52,7 @@ void Simulator::handle_arrival(const Event& evt) {
     auto task = evt.task;
 
     // Add to scheduler's ready queue
-    scheduler_->add_task(task, current_time_);
+    scheduler_->add_task(task, current_time_, -1);
 
     // Check each core: find idle core or check preemption
     for (int core_id = 0; core_id < num_cores_; ++core_id) {
@@ -64,7 +64,7 @@ void Simulator::handle_arrival(const Event& evt) {
 
     // All cores busy — check if new task should preempt any running task
     for (int core_id = 0; core_id < num_cores_; ++core_id) {
-        if (scheduler_->should_preempt(task, running_tasks_[core_id], current_time_)) {
+        if (scheduler_->should_preempt(task, running_tasks_[core_id], current_time_, core_id)) {
             preempt_core(core_id);
             dispatch_next(core_id);
             return;
@@ -88,7 +88,7 @@ void Simulator::handle_time_slice(const Event& evt) {
     task->execute(elapsed);
 
     // Notify scheduler of CPU usage
-    scheduler_->on_cpu_used(task, elapsed, current_time_);
+    scheduler_->on_cpu_used(task, elapsed, current_time_, core_id);
 
     // Check if completed
     if (task->is_completed()) {
@@ -100,7 +100,7 @@ void Simulator::handle_time_slice(const Event& evt) {
         task->increment_preemptions();
         preemptions_++;
         running_tasks_[core_id] = nullptr;
-        scheduler_->add_task(task, current_time_);
+        scheduler_->add_task(task, current_time_, core_id);
     }
 
     // Schedule next task on this core
@@ -114,7 +114,7 @@ void Simulator::preempt_core(int core_id) {
     // Account for CPU time used so far
     double elapsed = current_time_ - last_event_time_[core_id];
     task->execute(elapsed);
-    scheduler_->on_cpu_used(task, elapsed, current_time_);
+    scheduler_->on_cpu_used(task, elapsed, current_time_, core_id);
 
     // Cancel pending time slice event for this task
     events_.cancel_task(task);
@@ -123,7 +123,7 @@ void Simulator::preempt_core(int core_id) {
     task->increment_preemptions();
     preemptions_++;
     running_tasks_[core_id] = nullptr;
-    scheduler_->add_task(task, current_time_);
+    scheduler_->add_task(task, current_time_, core_id);
 
     context_switches_++;
 }
@@ -135,7 +135,7 @@ void Simulator::dispatch_next(int core_id) {
     }
 
     // Ask scheduler for next task and time slice
-    ScheduleDecision decision = scheduler_->schedule(current_time_);
+    ScheduleDecision decision = scheduler_->schedule(current_time_, core_id);
     if (!decision.task) {
         running_tasks_[core_id] = nullptr;
         return;

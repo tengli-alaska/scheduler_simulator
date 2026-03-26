@@ -27,7 +27,8 @@ public:
         : configs_(std::move(configs)),
           queues_(configs_.size()) {}
 
-    void add_task(TaskPtr task, double /*current_time*/) override {
+    void add_task(TaskPtr task, double /*current_time*/,
+                  int /*preferred_core*/ = -1) override {
         int level = task->current_queue();
         level = std::max(0, std::min(level, num_levels() - 1));
         task->set_current_queue(level);

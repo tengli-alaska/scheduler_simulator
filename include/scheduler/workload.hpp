@@ -60,4 +60,22 @@ public:
     }
 };
 
+enum class TraceType {
+    GoogleV3,
+    AlibabaV2018,
+};
+
+class TraceReplayWorkload : public WorkloadGenerator {
+public:
+    explicit TraceReplayWorkload(TraceType trace_type, std::string csv_path = "");
+
+    std::vector<TaskPtr> generate(uint32_t num_tasks) override;
+    std::string name() const override;
+    std::string description() const override;
+
+private:
+    TraceType trace_type_;
+    std::string csv_path_;
+};
+
 } // namespace sched_sim

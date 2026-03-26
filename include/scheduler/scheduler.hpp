@@ -40,7 +40,9 @@ public:
 
     /// Add a task to the ready queue(s).
     /// Called when a task arrives or is preempted back into the queue.
-    virtual void add_task(TaskPtr task, double current_time) = 0;
+    /// preferred_core is -1 when no core affinity is suggested.
+    virtual void add_task(TaskPtr task, double current_time,
+                          int preferred_core = -1) = 0;
 
     /// Remove a task from the ready queue(s).
     /// Called when a task is dispatched to CPU.
@@ -48,16 +50,18 @@ public:
 
     /// Select the next task to run and determine time slice.
     /// Returns a decision with task=nullptr if no task is ready.
-    virtual ScheduleDecision schedule(double current_time) = 0;
+    /// core_id is the core requesting work; -1 means not specified.
+    virtual ScheduleDecision schedule(double current_time, int core_id = -1) = 0;
 
     /// Notify the scheduler that a task used cpu_time of CPU time.
     /// Used to update vruntime (CFS), pass values (Stride), allotments (MLFQ), etc.
-    virtual void on_cpu_used(TaskPtr task, double cpu_time, double current_time) = 0;
+    virtual void on_cpu_used(TaskPtr task, double cpu_time, double current_time,
+                             int core_id = -1) = 0;
 
     /// Check if a newly arriving task should preempt the current one.
     /// current_task may be nullptr if CPU is idle.
     virtual bool should_preempt(TaskPtr new_task, TaskPtr current_task,
-                                double current_time) = 0;
+                                double current_time, int core_id = -1) = 0;
 
     /// Return how many tasks are in the ready queue(s)
     virtual int ready_count() const = 0;
