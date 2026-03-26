@@ -6,34 +6,95 @@ A C++17 discrete-event simulator for evaluating CPU scheduling policies across s
 
 - **4 Schedulers**: CFS, EEVDF, MLFQ, Stride
 - **4 Workloads**: Server, Desktop, Google Borg V3 trace, Alibaba Cluster V2018 trace
-- **3 Topologies**: Single-queue single-server (SQSS), Single-queue multi-server (SQMS), Multi-queue multi-server (MQMS)
+- **3 Topologies**: SQSS, SQMS, MQMS (see diagrams below)
 - **Load balancers** (MQMS): Round-Robin, Least-Loaded
 - **Work stealing**: Idle cores steal from busiest queue (MQMS only)
 - **Metrics**: Response time (mean, P95, P99), turnaround, throughput, Jain's fairness, context switches, preemptions
 - **Run tracking**: Results saved to `runs/` with CLI parameters encoded in the filename
 
-## Architecture
+---
+
+## Topology Diagrams
+
+### Option 1 — SQSS: Single-Queue Single-Server (`-c 1 -m sq`)
 
 ```
-Topology Options
-├── SQSS  Single-queue single-server   (-c 1, default)
-├── SQMS  Single-queue multi-server    (-c N, -m sq)
-└── MQMS  Multi-queue multi-server     (-c N, -m mq)
-
-Scheduler Hierarchy
-├── SingleQueueScheduler (base)
-│     ├── CFS
-│     ├── EEVDF
-│     └── Stride
-└── MultiQueueScheduler (base)
-      └── MLFQ
-
-Workloads
-├── ServerWorkload       Synthetic: bursty requests, API calls, background jobs
-├── DesktopWorkload      Synthetic: UI events, shell commands, compilations
-├── TraceReplayWorkload  GoogleV3 — Google Borg V3 cluster trace (CSV)
-└── TraceReplayWorkload  AlibabaV2018 — Alibaba Cluster Trace v2018 (CSV)
+  Arriving Tasks
+       |
+       v
+ +------------+
+ | Ready Queue|   <-- one shared queue
+ +------------+
+       |
+       v
+   [ Core 0 ]      <-- one CPU core
 ```
+
+One queue, one core. Simplest baseline. All schedulers run in pure single-core mode.
+
+---
+
+### Option 2 — SQMS: Single-Queue Multi-Server (`-c N -m sq`)
+
+```
+  Arriving Tasks
+       |
+       v
+ +---------------------+
+ |   Shared Ready Queue|   <-- one queue, N cores competing
+ +---------------------+
+     |       |       |       |
+     v       v       v       v
+ [Core 0] [Core 1] [Core 2] [Core 3]
+```
+
+One shared queue across all cores. Cores pull the next task whenever they go idle.
+Higher throughput than SQSS but queue access becomes a contention point at scale.
+
+---
+
+### Option 3 — MQMS: Multi-Queue Multi-Server (`-c N -m mq`)
+
+```
+  Arriving Tasks
+       |
+       v
+ [ Load Balancer ]   <-- RoundRobin or LeastLoaded
+   /   |   |   \
+  v    v   v    v
+ Q0   Q1  Q2   Q3    <-- per-core ready queues
+  |    |   |    |
+  v    v   v    v
+ C0   C1  C2   C3    <-- each core runs its own scheduler
+
+          ^
+          |
+   Work Stealing:
+   idle core scans
+   busiest queue and
+   pulls a task
+```
+
+Each core has its own independent scheduler queue. A load balancer assigns arriving tasks to a core at arrival time. If a core goes idle and all queues are empty, it steals from the busiest core's queue.
+
+---
+
+## Scheduler Hierarchy
+
+```
+SingleQueueScheduler (base)        MultiQueueScheduler (base)
+     |       |        |                      |
+    CFS    EEVDF   Stride                  MLFQ
+```
+
+| Scheduler | Strategy | Key Property |
+|-----------|----------|--------------|
+| CFS | vruntime-based, red-black tree | Equal CPU share over time |
+| EEVDF | Earliest Eligible Virtual Deadline First | Deadline-aware fairness |
+| MLFQ | Multi-level feedback queue | Adapts to task behavior |
+| Stride | Proportional-share via stride counters | Deterministic fairness |
+
+---
 
 ## Build
 
@@ -47,31 +108,33 @@ Or with CMake:
 cmake -B cmake-build -S . && cmake --build cmake-build
 ```
 
+---
+
 ## Usage
 
 ```bash
-# Run all schedulers on all workloads (1 core, 100 tasks)
+# Run all schedulers on all workloads (SQSS, 1 core, 100 tasks)
 ./cmake-build/bin/scheduler_sim
 
-# Specify tasks and cores (SQMS: shared queue, 4 cores)
-./cmake-build/bin/scheduler_sim -n 500 -c 4
+# SQMS: shared queue, 4 cores
+./cmake-build/bin/scheduler_sim -n 500 -c 4 -m sq
 
-# MQMS with least-loaded balancer and work stealing
+# MQMS: per-core queues, least-loaded balancer (default), work stealing on
 ./cmake-build/bin/scheduler_sim -n 500 -c 4 -m mq
 
-# MQMS with round-robin balancer
+# MQMS: round-robin balancer
 ./cmake-build/bin/scheduler_sim -n 500 -c 4 -m mq -b rr
 
-# MQMS without work stealing
+# MQMS: disable work stealing
 ./cmake-build/bin/scheduler_sim -n 500 -c 4 -m mq --no-steal
 
-# Run a specific scheduler and workload
+# Specific scheduler and workload
 ./cmake-build/bin/scheduler_sim -s cfs -w server
 
-# Run with Google trace workload
+# Google Borg V3 trace (requires CSV — see below)
 ./cmake-build/bin/scheduler_sim -w google -n 1000 -c 4
 
-# Run with Alibaba trace workload
+# Alibaba V2018 trace (requires CSV — see below)
 ./cmake-build/bin/scheduler_sim -w alibaba -n 1000 -c 4
 
 # Multiple replications
@@ -93,12 +156,14 @@ cmake -B cmake-build -S . && cmake --build cmake-build
 | `--no-steal` | Disable work stealing (mq only) | — |
 | `-h` | Show help | — |
 
+---
+
 ## Testing Configurations
 
-The following 6 configurations are used to evaluate each scheduler:
+6 configurations are run per scheduler (24 total across all 4 schedulers):
 
-| # | Topology | Cores | Tasks | Command |
-|---|----------|-------|-------|---------|
+| # | Topology | Cores | Tasks | Flag Combination |
+|---|----------|-------|-------|-----------------|
 | 1 | SQSS | 1 | 10,000 | `-c 1 -m sq -n 10000` |
 | 2 | SQSS | 1 | 100,000 | `-c 1 -m sq -n 100000` |
 | 3 | SQMS | 4 | 10,000 | `-c 4 -m sq -n 10000` |
@@ -117,33 +182,71 @@ Run all 6 for a single scheduler (e.g. CFS):
 ./cmake-build/bin/scheduler_sim -s cfs -c 4 -m mq -b rr -n 100000
 ```
 
+---
+
 ## Real-World Trace Workloads
 
+> **The raw trace files are NOT included in this repository.** They must be downloaded separately and placed in the correct paths before running. The extraction scripts convert the raw data into the CSV format the simulator expects.
+
 ### Google Borg V3
-Place the extracted CSV at:
+
+**Step 1 — Download** the Google Cluster Data 2019 (Borg V3) instance events from:
+> https://github.com/google/cluster-data/blob/master/ClusterData2019.md
+
+The relevant files are the `instance_events` JSON shards (gzipped, ~several GB total).
+
+**Step 2 — Extract** using the provided script:
+
+```bash
+python3 real-time-workloads/google_v3/extract_google_v3.py \
+    path/to/instance_events-*.json.gz \
+    -o real-time-workloads/google_v3/google_v3_workload.csv \
+    -n 50000
 ```
-real-time-workloads/google_v3/google_v3_workload.csv
+
+Optional flags:
+- `-n <num>` — limit to N complete tasks
+- `-t <seconds>` — only include tasks submitted in the first T seconds
+
+**Step 3 — Run:**
+
+```bash
+./cmake-build/bin/scheduler_sim -w google -n 1000 -c 4
 ```
+
+Expected CSV location: `real-time-workloads/google_v3/google_v3_workload.csv`
 Expected columns: `arrival_time_us`, `cpu_burst_duration_us`, `nice`
 
-Use the extraction script:
-```bash
-python3 real-time-workloads/google_v3/extract_google_v3.py
-```
+---
 
 ### Alibaba Cluster Trace V2018
-Place the subset CSV at:
-```
-real-time-workloads/alibaba_v2018/batch_instance_subset_head_40000_with_header.csv
-```
-Expected columns: `task_type`, `status`, `start_time`, `end_time`
 
-Use the subset script:
+**Step 1 — Download** the Alibaba Cluster Trace v2018 batch instance data from:
+> https://github.com/alibaba/clusterdata/tree/master/cluster-trace-v2018
+
+The relevant file is `batch_instance.tar.gz`.
+
+**Step 2 — Generate subset** using the provided script:
+
 ```bash
 python3 real-time-workloads/alibaba_v2018/make_subset.py
 ```
 
-Both traces are normalized to `t=0` at simulation start.
+This produces: `real-time-workloads/alibaba_v2018/batch_instance_subset_head_40000_with_header.csv`
+
+**Step 3 — Run:**
+
+```bash
+./cmake-build/bin/scheduler_sim -w alibaba -n 1000 -c 4
+```
+
+Expected columns: `task_type`, `status`, `start_time`, `end_time`
+
+---
+
+Both traces are normalized to `t=0` at simulation start and times are converted to milliseconds.
+
+---
 
 ## Results
 
@@ -160,6 +263,8 @@ Each CSV row contains:
 Scheduler, Workload, Completed, MeanRT, P95RT, P99RT, MeanTAT, MeanWT,
 Throughput, JainsFairness, ContextSwitches, Preemptions
 ```
+
+---
 
 ## Project Structure
 
@@ -190,11 +295,13 @@ src/
 apps/
   main.cpp                Experiment runner
 real-time-workloads/
-  google_v3/              Google Borg V3 extraction scripts + CSV (gitignored)
-  alibaba_v2018/          Alibaba V2018 subset scripts + CSV (gitignored)
+  google_v3/              Extraction script (raw JSON not included — download separately)
+  alibaba_v2018/          Subset script (raw data not included — download separately)
 lib/                      External C libraries (RNG)
 runs/                     Simulation results (gitignored)
 ```
+
+---
 
 ## Adding a New Scheduler
 
@@ -209,10 +316,13 @@ runs/                     Simulation results (gitignored)
 2. Create `src/workloads/my_workload.cpp` implementing `generate()`
 3. Register in `apps/main.cpp` workload list
 
+---
+
 ## Requirements
 
 - C++17 compiler (GCC 7+, Clang 5+)
 - Make or CMake 3.14+
+- Python 3.7+ (only needed for trace extraction scripts)
 
 ## License
 
