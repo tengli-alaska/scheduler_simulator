@@ -41,8 +41,14 @@ void Metrics::calculate(const std::vector<TaskPtr>& completed_tasks, double tota
     p99_response_time = response_times[static_cast<size_t>(num_completed * 0.99)];
     
     // Throughput and utilization
-    throughput = num_completed / total_time;
-    utilization = total_exec_time / total_time;
+    if (total_time > 0.0) {
+        // total_time is in ms; report throughput as tasks/second.
+        throughput = (num_completed * 1000.0) / total_time;
+        utilization = total_exec_time / total_time;
+    } else {
+        throughput = 0.0;
+        utilization = 0.0;
+    }
     
     // Jain's Fairness Index: J = (sum(x_i))^2 / (n * sum(x_i^2))
     // where x_i = execution_time / turnaround_time (normalized throughput per task)

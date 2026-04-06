@@ -26,7 +26,8 @@ void Simulator::run(double stop_time) {
     while (auto evt_opt = events_.get_next()) {
         auto evt = *evt_opt;
 
-        if (evt.time > stop_time && completed_tasks_.size() >= all_tasks_.size()) {
+        if (evt.time > stop_time_) {
+            current_time_ = stop_time_;
             break;
         }
 
@@ -52,6 +53,7 @@ void Simulator::handle_arrival(const Event& evt) {
     auto task = evt.task;
 
     // Add to scheduler's ready queue
+    task->mark_ready(current_time_);
     scheduler_->add_task(task, current_time_, -1);
 
     // Check each core: find idle core or check preemption
@@ -100,6 +102,7 @@ void Simulator::handle_time_slice(const Event& evt) {
         task->increment_preemptions();
         preemptions_++;
         running_tasks_[core_id] = nullptr;
+        task->mark_ready(current_time_);
         scheduler_->add_task(task, current_time_, core_id);
     }
 
@@ -123,6 +126,7 @@ void Simulator::preempt_core(int core_id) {
     task->increment_preemptions();
     preemptions_++;
     running_tasks_[core_id] = nullptr;
+    task->mark_ready(current_time_);
     scheduler_->add_task(task, current_time_, core_id);
 
     context_switches_++;
@@ -148,6 +152,7 @@ void Simulator::dispatch_next(int core_id) {
 
     // Dispatch
     running_tasks_[core_id] = task;
+    task->mark_dispatched(current_time_);
     task->start(current_time_);
     last_event_time_[core_id] = current_time_;
 

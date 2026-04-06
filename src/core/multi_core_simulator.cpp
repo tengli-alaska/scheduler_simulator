@@ -39,7 +39,8 @@ void MultiCoreSimulator::run(double stop_time) {
     while (auto evt_opt = events_.get_next()) {
         auto evt = *evt_opt;
 
-        if (evt.time > stop_time && completed_tasks_.size() >= all_tasks_.size()) {
+        if (evt.time > stop_time_) {
+            current_time_ = stop_time_;
             break;
         }
 
@@ -69,6 +70,7 @@ void MultiCoreSimulator::handle_arrival(const Event& evt) {
     int target_core = balancer_->assign(task, schedulers_, running_tasks_);
 
     // Add to that core's scheduler
+    task->mark_ready(current_time_);
     schedulers_[target_core]->add_task(task, current_time_, target_core);
 
     // If target core is idle, dispatch immediately
@@ -113,6 +115,7 @@ void MultiCoreSimulator::handle_time_slice(const Event& evt) {
         task->increment_preemptions();
         preemptions_++;
         running_tasks_[core_id] = nullptr;
+        task->mark_ready(current_time_);
         schedulers_[core_id]->add_task(task, current_time_, core_id);
     }
 
@@ -136,6 +139,7 @@ void MultiCoreSimulator::preempt_core(int core_id) {
     task->increment_preemptions();
     preemptions_++;
     running_tasks_[core_id] = nullptr;
+    task->mark_ready(current_time_);
     schedulers_[core_id]->add_task(task, current_time_, core_id);
 
     context_switches_++;
@@ -150,6 +154,7 @@ void MultiCoreSimulator::dispatch_next(int core_id) {
             schedulers_[core_id]->remove_task(task->id());
 
             running_tasks_[core_id] = task;
+            task->mark_dispatched(current_time_);
             task->start(current_time_);
             last_event_time_[core_id] = current_time_;
             context_switches_++;
@@ -207,6 +212,7 @@ bool MultiCoreSimulator::try_work_steal(int idle_core) {
     schedulers_[idle_core]->remove_task(task->id());
 
     running_tasks_[idle_core] = task;
+    task->mark_dispatched(current_time_);
     task->start(current_time_);
     last_event_time_[idle_core] = current_time_;
     context_switches_++;

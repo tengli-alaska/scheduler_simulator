@@ -81,6 +81,8 @@ public:
     void complete(double time);
     void execute(double duration);
     bool is_completed() const noexcept;
+    void mark_ready(double time) noexcept;
+    void mark_dispatched(double time) noexcept;
     
     // Statistics
     double start_time() const noexcept { return start_time_; }
@@ -118,6 +120,8 @@ private:
     double completion_time_ = -1.0;
     double wait_time_ = 0.0;
     uint32_t preemption_count_ = 0;
+    bool in_ready_queue_ = false;
+    double ready_enter_time_ = 0.0;
 };
 
 using TaskPtr = std::shared_ptr<Task>;

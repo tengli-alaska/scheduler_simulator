@@ -22,7 +22,8 @@ class EEVDFScheduler : public SingleQueueScheduler {
 public:
     struct Params {
         double base_slice;   // Base time slice (ms)
-        Params() : base_slice(3.0) {}
+        double min_slice;    // Minimum preemption interval (ms)
+        Params() : base_slice(3.0), min_slice(1.0) {}
     };
 
     explicit EEVDFScheduler(Params params = Params())
@@ -115,7 +116,7 @@ private:
 
     double calc_time_slice(const TaskPtr& task) const {
         double slice = params_.base_slice * task->weight() / static_cast<double>(NICE_0_LOAD);
-        return std::max(slice, 0.1); // minimum 0.1ms
+        return std::max(slice, params_.min_slice);
     }
 
     TaskPtr find_earliest_eligible() const {

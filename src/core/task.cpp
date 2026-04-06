@@ -18,7 +18,6 @@ Task::Task(uint32_t id, double arrival_time, double execution_time, int nice)
 void Task::start(double time) {
     if (start_time_ < 0) {
         start_time_ = time;
-        wait_time_ = time - arrival_time_;
     }
 }
 
@@ -35,6 +34,17 @@ void Task::execute(double duration) {
 
 bool Task::is_completed() const noexcept {
     return remaining_time_ <= 0.001;
+}
+
+void Task::mark_ready(double time) noexcept {
+    in_ready_queue_ = true;
+    ready_enter_time_ = time;
+}
+
+void Task::mark_dispatched(double time) noexcept {
+    if (!in_ready_queue_) return;
+    wait_time_ += std::max(0.0, time - ready_enter_time_);
+    in_ready_queue_ = false;
 }
 
 double Task::response_time() const noexcept {
@@ -58,6 +68,8 @@ void Task::reset() {
     current_queue_ = 0;
     preemption_count_ = 0;
     wait_time_ = 0.0;
+    in_ready_queue_ = false;
+    ready_enter_time_ = 0.0;
 }
 
 } // namespace sched_sim
