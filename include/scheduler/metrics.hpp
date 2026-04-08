@@ -33,8 +33,9 @@ struct Metrics {
      * @brief Calculate metrics from completed tasks
      * @param completed_tasks Vector of completed tasks
      * @param total_time Total simulation time
+     * @param num_cores Number of CPU cores (default 1)
      */
-    void calculate(const std::vector<TaskPtr>& completed_tasks, double total_time);
+    void calculate(const std::vector<TaskPtr>& completed_tasks, double total_time, uint32_t num_cores = 1);
     
     /**
      * @brief Print metrics to console

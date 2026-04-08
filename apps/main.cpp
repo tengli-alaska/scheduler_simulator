@@ -46,7 +46,7 @@ struct Config {
     uint32_t num_tasks = 100;
     int num_cores = 1;
     int num_replications = 1;
-    double stop_time = 10000.0;
+    double stop_time = 100000.0;
     std::string scheduler_filter = "all";
     std::string workload_filter = "all";
     std::string topology = "sq";          // "sq" = single-queue, "mq" = multi-queue
@@ -185,13 +185,13 @@ void run_experiment(
     
     // Calculate metrics
     Metrics metrics;
-    metrics.calculate(sim.completed_tasks(), sim.current_time());
+    metrics.calculate(sim.completed_tasks(), sim.current_time(), config.num_cores);
     metrics.context_switches = sim.context_switches();
     metrics.preemptions = sim.preemptions();
-    
+
     // Print results
     metrics.print(scheduler_name, workload_gen.name());
-    
+
     // Write to CSV
     metrics.to_csv(scheduler_name, workload_gen.name(), csv_out);
 }
@@ -231,7 +231,7 @@ void run_experiment_mq(
 
     // Calculate metrics
     Metrics metrics;
-    metrics.calculate(sim.completed_tasks(), sim.current_time());
+    metrics.calculate(sim.completed_tasks(), sim.current_time(), config.num_cores);
     metrics.context_switches = sim.context_switches();
     metrics.preemptions = sim.preemptions();
 

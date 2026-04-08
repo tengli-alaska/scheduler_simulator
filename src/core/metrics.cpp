@@ -7,7 +7,7 @@
 
 namespace sched_sim {
 
-void Metrics::calculate(const std::vector<TaskPtr>& completed_tasks, double total_time) {
+void Metrics::calculate(const std::vector<TaskPtr>& completed_tasks, double total_time, uint32_t num_cores) {
     if (completed_tasks.empty()) {
         return;
     }
@@ -44,7 +44,7 @@ void Metrics::calculate(const std::vector<TaskPtr>& completed_tasks, double tota
     if (total_time > 0.0) {
         // total_time is in ms; report throughput as tasks/second.
         throughput = (num_completed * 1000.0) / total_time;
-        utilization = total_exec_time / total_time;
+        utilization = total_exec_time / (total_time * std::max(1u, num_cores));
     } else {
         throughput = 0.0;
         utilization = 0.0;
