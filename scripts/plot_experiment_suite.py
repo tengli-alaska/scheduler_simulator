@@ -62,11 +62,17 @@ def setup_style() -> None:
             "figure.dpi": 120,
             "savefig.dpi": 300,
             "font.family": "DejaVu Sans",
-            "axes.titlesize": 11,
-            "axes.labelsize": 10,
-            "legend.fontsize": 9,
-            "xtick.labelsize": 9,
-            "ytick.labelsize": 9,
+            "axes.titlesize": 13,
+            "axes.labelsize": 11,
+            "legend.fontsize": 10,
+            "xtick.labelsize": 10,
+            "ytick.labelsize": 10,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.grid": True,
+            "grid.alpha": 0.4,
+            "lines.linewidth": 2.0,
+            "lines.markersize": 7,
         }
     )
 
@@ -85,13 +91,33 @@ def save_figure(fig, output_dir: Path, stem: str, formats: Iterable[str], dpi: i
     plt.close(fig)
 
 
-def finalize_with_top_legend(fig, title: str, handles, labels, ncol: int, top_rect: float = 0.86) -> None:
-    fig.suptitle(title, y=0.99)
+def finalize_with_top_legend(
+    fig,
+    title: str,
+    handles,
+    labels,
+    ncol: int,
+    top_rect: float = 0.86,
+    subtitle: str | None = None,
+) -> None:
+    fig.suptitle(title, y=0.99, fontsize=13, fontweight="bold")
+    if subtitle:
+        fig.text(
+            0.5, 0.965,
+            subtitle,
+            ha="center", va="top",
+            fontsize=9,
+            color="#555555",
+            style="italic",
+        )
+        legend_y = 0.945
+    else:
+        legend_y = 0.955
     fig.legend(
         handles,
         labels,
         loc="upper center",
-        bbox_to_anchor=(0.5, 0.955),
+        bbox_to_anchor=(0.5, legend_y),
         ncol=ncol,
         frameon=False,
     )
@@ -136,37 +162,86 @@ def plot_exp1_multicore_scaling(metrics, out_dir: Path, formats, dpi: int):
     df = exp_subset(metrics, "Exp1")
     if df.empty:
         return False
+
     workloads = ["Desktop", "Server"]
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5), sharey=False)
-    for i, workload in enumerate(workloads):
-        ax = axes[i]
-        sub = df[df["Workload"] == workload]
-        sns.lineplot(
-            data=sub,
-            x="Cores",
-            y="Throughput",
-            hue="Scheduler",
-            hue_order=SCHEDULER_ORDER,
-            palette=PALETTE,
-            marker="o",
-            estimator="mean",
-            errorbar=("ci", 95),
-            ax=ax,
-        )
-        ax.set_title(workload)
-        ax.set_xlabel("Cores")
-        ax.set_ylabel("Throughput (tasks/s)")
-        if i != 0:
-            ax.get_legend().remove()
-    handles, labels = axes[0].get_legend_handles_labels()
+    panels = [
+        ("MeanRT",          "Mean Response Time",   True),
+        ("P99RT",           "P99 Response Time",    True),
+        ("ContextSwitches", "Context Switches",     False),
+    ]
+
+    # Aggregate to one value per (Workload, Scheduler, Cores)
+    agg = (
+        df.groupby(["Workload", "Scheduler", "Cores"])[
+            [m for m, _, _ in panels]
+        ]
+        .mean()
+        .reset_index()
+    )
+    agg["Cores"] = agg["Cores"].astype(str)          # categorical x-axis for grouped bars
+    core_order = ["1", "2", "4"]
+    bar_width = 0.18
+    import numpy as _np_local
+    x = _np_local.arange(len(core_order))
+
+    fig, axes = plt.subplots(
+        len(panels), len(workloads),
+        figsize=(13, 3.8 * len(panels)),
+        sharey=False,
+    )
+
+    for col, workload in enumerate(workloads):
+        sub = agg[agg["Workload"] == workload]
+        for row, (metric, ylabel, use_log) in enumerate(panels):
+            ax = axes[row, col]
+            for i, sched in enumerate(SCHEDULER_ORDER):
+                sdata = sub[sub["Scheduler"] == sched].set_index("Cores").reindex(core_order)
+                vals = sdata[metric].values
+                offset = (i - (len(SCHEDULER_ORDER) - 1) / 2) * bar_width
+                ax.bar(
+                    x + offset,
+                    vals,
+                    width=bar_width * 0.9,
+                    label=sched,
+                    color=PALETTE[sched],
+                    edgecolor="white",
+                    linewidth=0.5,
+                )
+            ax.set_xticks(x)
+            ax.set_xticklabels([f"{c}c" for c in core_order])
+            ax.set_xlabel("Number of Cores")
+            ax.set_ylabel(ylabel)
+            if use_log:
+                ax.set_yscale("log")
+            if row == 0:
+                ax.set_title(workload, fontweight="bold", pad=10)
+            # annotate top of each bar group with a light divider
+            ax.yaxis.grid(True, alpha=0.4, zorder=0)
+            ax.set_axisbelow(True)
+
+    handles = [
+        plt.Rectangle((0, 0), 1, 1, color=PALETTE[s], label=s)
+        for s in SCHEDULER_ORDER
+    ]
+    labels = SCHEDULER_ORDER
+    params = df[["NumTasks", "StopTime"]].iloc[0]
+    subtitle = (
+        f"Tasks: {int(params['NumTasks']):,}  |  "
+        f"Stop Time: {int(params['StopTime']):,}  |  "
+        f"Cores varied: 1, 2, 4  |  "
+        f"Queue: Single  |  "
+        f"Workloads: Desktop, Server"
+    )
     finalize_with_top_legend(
         fig,
-        "Exp 1: Multi-core Scaling (Throughput vs Cores)",
+        "Exp 1: Multi-core Scaling",
         handles,
         labels,
         ncol=4,
+        top_rect=0.91,
+        subtitle=subtitle,
     )
-    save_figure(fig, out_dir, "exp1_multicore_scaling_throughput", formats, dpi)
+    save_figure(fig, out_dir, "exp1_multicore_scaling", formats, dpi)
     return True
 
 
@@ -174,55 +249,92 @@ def plot_exp2_high_load_convergence(metrics, out_dir: Path, formats, dpi: int):
     df = exp_subset(metrics, "Exp2")
     if df.empty:
         return False
+
+    # Google has only 1 data point — not plottable as a trend; shown as annotation instead
     workloads = ["Desktop", "Server"]
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10), sharex="col")
-    for r, workload in enumerate(workloads):
-        sub = df[df["Workload"] == workload]
-        ax_t = axes[r, 0]
-        ax_rt = axes[r, 1]
-        sns.lineplot(
-            data=sub,
-            x="NumTasks",
-            y="Throughput",
-            hue="Scheduler",
-            hue_order=SCHEDULER_ORDER,
-            palette=PALETTE,
-            marker="o",
-            estimator="mean",
-            errorbar=("ci", 95),
-            ax=ax_t,
-        )
-        sns.lineplot(
-            data=sub,
-            x="NumTasks",
-            y="MeanRT",
-            hue="Scheduler",
-            hue_order=SCHEDULER_ORDER,
-            palette=PALETTE,
-            marker="o",
-            estimator="mean",
-            errorbar=("ci", 95),
-            ax=ax_rt,
-        )
-        ax_t.set_title(f"{workload}: Throughput")
-        ax_rt.set_title(f"{workload}: Mean Response Time")
-        ax_t.set_xscale("log")
-        ax_rt.set_xscale("log")
-        ax_t.set_xlabel("Num Tasks")
-        ax_rt.set_xlabel("Num Tasks")
-        ax_t.set_ylabel("Throughput (tasks/s)")
-        ax_rt.set_ylabel("Mean Response Time")
-        if r != 0:
-            ax_t.get_legend().remove()
-            ax_rt.get_legend().remove()
-    handles, labels = axes[0, 0].get_legend_handles_labels()
-    axes[0, 1].get_legend().remove()
+    panels = [
+        ("MeanRT",        "Mean Response Time",  True),
+        ("P99RT",         "P99 Response Time",   True),
+        ("JainsFairness", "Jain's Fairness Index", False),
+    ]
+
+    import numpy as _np_local
+
+    agg = (
+        df[df["Workload"].isin(workloads)]
+        .groupby(["Workload", "Scheduler", "NumTasks"])[
+            [m for m, _, _ in panels]
+        ]
+        .mean()
+        .reset_index()
+    )
+
+    n_vals = sorted(agg["NumTasks"].unique())
+    n_order = [str(int(n)) for n in n_vals]
+    agg["NumTasksStr"] = agg["NumTasks"].apply(lambda v: str(int(v)))
+
+    x = _np_local.arange(len(n_order))
+    bar_width = 0.18
+
+    fig, axes = plt.subplots(
+        len(panels), len(workloads),
+        figsize=(13, 3.8 * len(panels)),
+        sharey=False,
+    )
+
+    for col, workload in enumerate(workloads):
+        sub = agg[agg["Workload"] == workload]
+        for row, (metric, ylabel, use_log) in enumerate(panels):
+            ax = axes[row, col]
+            for i, sched in enumerate(SCHEDULER_ORDER):
+                sdata = (
+                    sub[sub["Scheduler"] == sched]
+                    .set_index("NumTasksStr")
+                    .reindex(n_order)
+                )
+                vals = sdata[metric].values
+                offset = (i - (len(SCHEDULER_ORDER) - 1) / 2) * bar_width
+                ax.bar(
+                    x + offset,
+                    vals,
+                    width=bar_width * 0.9,
+                    label=sched,
+                    color=PALETTE[sched],
+                    edgecolor="white",
+                    linewidth=0.5,
+                )
+            ax.set_xticks(x)
+            ax.set_xticklabels([f"{int(n):,}" for n in n_vals], rotation=15, ha="right")
+            ax.set_xlabel("Number of Tasks")
+            ax.set_ylabel(ylabel)
+            if use_log:
+                ax.set_yscale("log")
+            if row == 0:
+                ax.set_title(workload, fontweight="bold", pad=10)
+            ax.yaxis.grid(True, alpha=0.4, zorder=0)
+            ax.set_axisbelow(True)
+
+
+    handles = [
+        plt.Rectangle((0, 0), 1, 1, color=PALETTE[s], label=s)
+        for s in SCHEDULER_ORDER
+    ]
+    labels = SCHEDULER_ORDER
+    n_str = ", ".join(f"{int(n):,}" for n in n_vals)
+    stop_times = sorted(df[df["Workload"].isin(workloads)]["StopTime"].unique())
+    t_str = ", ".join(f"{int(t):,}" for t in stop_times)
+    subtitle = (
+        f"Tasks varied: {n_str}  |  Stop Time(s): {t_str}  |  "
+        f"Cores: 4  |  Queue: Single  |  Workloads: Desktop, Server"
+    )
     finalize_with_top_legend(
         fig,
         "Exp 2: High-load Convergence (Graceful Degradation)",
         handles,
         labels,
         ncol=4,
+        top_rect=0.91,
+        subtitle=subtitle,
     )
     save_figure(fig, out_dir, "exp2_high_load_convergence", formats, dpi)
     return True
@@ -403,7 +515,7 @@ def main() -> None:
 
     generated = []
     if plot_exp1_multicore_scaling(metrics, output_dir, formats, args.dpi):
-        generated.append("exp1_multicore_scaling_throughput")
+        generated.append("exp1_multicore_scaling")
     if plot_exp2_high_load_convergence(metrics, output_dir, formats, args.dpi):
         generated.append("exp2_high_load_convergence")
     if plot_exp3_scheduler_workload_matrix(metrics, output_dir, formats, args.dpi):

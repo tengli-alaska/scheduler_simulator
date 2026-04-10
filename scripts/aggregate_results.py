@@ -99,13 +99,14 @@ def tag_experiments(row):
     )
 
     exp2 = (
-        workload in {"Server", "Desktop"}
+        workload in {"Server", "Desktop", "GoogleTraceV3"}
         and top == "sq"
         and c == 4
         and (
             (n == 10000 and approx_eq(t, 100000.0))
             or (n == 50000 and approx_eq(t, 1000000.0))
             or (n == 100000 and approx_eq(t, 1000000.0))
+            or (n == 1000 and approx_eq(t, 1000000.0))
         )
     )
 
