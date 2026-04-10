@@ -12,3 +12,4 @@ runs/
 results.csv
 *.csv
 !workloads/*.csv
+figures/

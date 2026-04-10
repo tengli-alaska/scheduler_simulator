@@ -175,7 +175,7 @@ cmake -B cmake-build -S . && cmake --build cmake-build
 | `-n <num>` | Number of tasks per workload | 100 |
 | `-c <num>` | Number of CPU cores | 1 |
 | `-r <num>` | Number of replications | 1 |
-| `-t <time>` | Simulation stop time (ms) | 10000.0 |
+| `-t <time>` | Simulation stop time (ms) | 100000.0 |
 | `-s <name>` | Scheduler: `cfs`, `eevdf`, `mlfq`, `stride`, `all` | all |
 | `-w <name>` | Workload: `server`, `desktop`, `google`, `alibaba`, `all` | all |
 | `-m <name>` | Topology: `sq` (single-queue), `mq` (multi-queue) | sq |
@@ -280,15 +280,63 @@ Both traces are normalized to `t=0` at simulation start and times are converted 
 Results are saved to `runs/` with parameters encoded in the filename:
 
 ```
-runs/n100_c4_s-all_w-all_r1_m-sq.csv
-runs/n10000_c4_s-cfs_w-server_r1_m-mq_b-rr_steal-on.csv
+runs/n1000_c4_s-all_w-server_r1_m-sq.csv
+runs/n1000_c4_s-all_w-server_r1_m-sq_tasks.csv
 ```
 
-Each CSV row contains:
+Each aggregate CSV row contains:
 
 ```
-Scheduler, Workload, Completed, MeanRT, P95RT, P99RT, MeanTAT, MeanWT,
-Throughput, JainsFairness, ContextSwitches, Preemptions
+Replication, NumTasks, Cores, Topology, Balancer, WorkStealing, StopTime,
+Scheduler, Workload, Completed, CompletionRatio, MeanRT, P95RT, P99RT,
+MeanTAT, MeanWT, Throughput, ThroughputPerCore, Utilization, JainsFairness,
+ContextSwitches, Preemptions
+```
+
+Each `*_tasks.csv` row contains per-task details (including `Nice`, `Weight`,
+`AllocatedCPU`, `ResponseTime`, `WaitTime`, `TurnaroundTime`) for deeper
+fairness/overhead analysis.
+
+---
+
+## Publication Figures
+
+The plotting pipeline reads only `analysis/*.csv` and outputs publication-ready
+figures mapped to RQ1-RQ5.
+
+Install plotting dependencies:
+
+```bash
+python3 -m pip install -r scripts/plot_requirements.txt
+```
+
+Generate figures:
+
+```bash
+python3 scripts/plot_publication_figures.py \
+  --analysis-dir analysis \
+  --output-dir figures \
+  --formats png,pdf \
+  --dpi 300
+```
+
+The script writes:
+- `figures/rq1_*` (throughput + throughput deltas)
+- `figures/rq2_*` (weighted allocation behavior)
+- `figures/rq3_*` (synthetic vs real comparison)
+- `figures/rq4_*` (workload-characteristic sensitivity)
+- `figures/rq5_*` (overhead and tradeoff views)
+- `figures/figure_index.md`
+
+To generate figures tied directly to an `Exp1..Exp6` command suite, run:
+
+```bash
+python3 scripts/aggregate_results.py
+python3 scripts/plot_experiment_suite.py \
+  --analysis-dir analysis \
+  --output-dir figures/experiments \
+  --formats png,pdf \
+  --dpi 300
 ```
 
 ---

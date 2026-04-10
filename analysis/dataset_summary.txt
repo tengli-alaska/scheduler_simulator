@@ -1,0 +1,10 @@
+Aggregate run files: 16
+Task run files: 16
+Aggregate rows: 64
+Task rows: 1608000
+Generated files:
+- metrics_enriched.csv
+- weighted_allocation_summary.csv
+- nice_bucket_allocation.csv
+- workload_characteristics.csv
+- fairness_vs_characteristics.csv

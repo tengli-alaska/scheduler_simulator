@@ -1,6 +1,6 @@
 CXX = g++
 CC = gcc
-CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -I include -I lib
+CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -I include -I lib -include include/compat/builtin_compat.hpp
 CFLAGS = -std=c99 -O2 -Wall -I lib
 LDFLAGS = -lm
 

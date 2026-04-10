@@ -54,13 +54,104 @@ struct Config {
     bool work_stealing = true;
 };
 
+std::string work_stealing_label(const Config& config) {
+    return config.work_stealing ? "on" : "off";
+}
+
+void write_metrics_header(std::ostream& out) {
+    out << "Replication,NumTasks,Cores,Topology,Balancer,WorkStealing,StopTime,"
+        << "Scheduler,Workload,Completed,CompletionRatio,MeanRT,"
+        << "P95RT,P99RT,MeanTAT,MeanWT,Throughput,ThroughputPerCore,"
+        << "Utilization,JainsFairness,ContextSwitches,Preemptions\n";
+}
+
+void write_metrics_row(const Metrics& metrics,
+                       const std::string& scheduler_name,
+                       const std::string& workload_name,
+                       const Config& config,
+                       int replication,
+                       std::ostream& out) {
+    const double completion_ratio =
+        (config.num_tasks > 0) ? (static_cast<double>(metrics.num_completed) / config.num_tasks) : 0.0;
+    const double throughput_per_core =
+        metrics.throughput / static_cast<double>(std::max(1, config.num_cores));
+
+    out << replication << ","
+        << config.num_tasks << ","
+        << config.num_cores << ","
+        << config.topology << ","
+        << (config.topology == "mq" ? config.balancer : "na") << ","
+        << (config.topology == "mq" ? work_stealing_label(config) : "na") << ","
+        << config.stop_time << ","
+        << scheduler_name << ","
+        << workload_name << ","
+        << metrics.num_completed << ","
+        << completion_ratio << ","
+        << metrics.mean_response_time << ","
+        << metrics.p95_response_time << ","
+        << metrics.p99_response_time << ","
+        << metrics.mean_turnaround_time << ","
+        << metrics.mean_wait_time << ","
+        << metrics.throughput << ","
+        << throughput_per_core << ","
+        << metrics.utilization << ","
+        << metrics.jains_fairness << ","
+        << metrics.context_switches << ","
+        << metrics.preemptions << "\n";
+}
+
+void write_task_header(std::ostream& out) {
+    out << "Replication,NumTasks,Cores,Topology,Balancer,WorkStealing,StopTime,"
+        << "Scheduler,Workload,TaskID,Nice,Weight,Arrival,Execution,"
+        << "AllocatedCPU,Remaining,Started,Completed,StartTime,CompletionTime,"
+        << "ResponseTime,TurnaroundTime,WaitTime,PreemptionCount\n";
+}
+
+void write_task_rows(const std::vector<TaskPtr>& tasks,
+                     const std::string& scheduler_name,
+                     const std::string& workload_name,
+                     const Config& config,
+                     int replication,
+                     std::ostream& out) {
+    for (const auto& task : tasks) {
+        const bool started = task->start_time() >= 0.0;
+        const bool completed = task->completion_time() >= 0.0;
+        const double allocated_cpu = task->execution_time() - task->remaining_time();
+
+        out << replication << ","
+            << config.num_tasks << ","
+            << config.num_cores << ","
+            << config.topology << ","
+            << (config.topology == "mq" ? config.balancer : "na") << ","
+            << (config.topology == "mq" ? work_stealing_label(config) : "na") << ","
+            << config.stop_time << ","
+            << scheduler_name << ","
+            << workload_name << ","
+            << task->id() << ","
+            << task->nice() << ","
+            << task->weight() << ","
+            << task->arrival_time() << ","
+            << task->execution_time() << ","
+            << allocated_cpu << ","
+            << task->remaining_time() << ","
+            << (started ? 1 : 0) << ","
+            << (completed ? 1 : 0) << ","
+            << task->start_time() << ","
+            << task->completion_time() << ","
+            << task->response_time() << ","
+            << task->turnaround_time() << ","
+            << task->wait_time() << ","
+            << task->preemption_count() << "\n";
+    }
+}
+
 void print_banner() {
     std::cout << "\n";
     std::cout << "====================================================\n";
     std::cout << "  MULTI-SCHEDULER MULTI-WORKLOAD EVALUATION\n";
     std::cout << "  \n";
     std::cout << "  Schedulers:  CFS, EEVDF, MLFQ, Stride\n";
-    std::cout << "  Workloads:   Server, Desktop\n";
+    std::cout << "  Workloads:   Server, Desktop, Google, Alibaba\n";
     std::cout << "  Topologies:  Single-Queue, Multi-Queue\n";
     std::cout << "====================================================\n";
     std::cout << "\n";
@@ -72,7 +163,7 @@ void print_usage(const char* program_name) {
     std::cout << "  -n <num>       Number of tasks per workload (default: 100)\n";
     std::cout << "  -c <num>       Number of CPU cores (default: 1)\n";
     std::cout << "  -r <num>       Number of replications (default: 1)\n";
-    std::cout << "  -t <time>      Simulation stop time (default: 10000.0)\n";
+    std::cout << "  -t <time>      Simulation stop time (default: 100000.0)\n";
     std::cout << "  -s <scheduler> Scheduler to use (default: all)\n";
     std::cout << "                 Options: cfs, eevdf, mlfq, stride, all\n";
     std::cout << "  -w <workload>  Workload to use (default: all)\n";
@@ -164,7 +255,9 @@ void run_experiment(
     const std::string& scheduler_name,
     WorkloadGenerator& workload_gen,
     const Config& config,
-    std::ostream& csv_out)
+    int replication,
+    std::ostream& csv_out,
+    std::ostream& task_out)
 {
     std::cout << "\n[" << scheduler_name << " on " << workload_gen.name() << "]\n";
     
@@ -192,8 +285,11 @@ void run_experiment(
     // Print results
     metrics.print(scheduler_name, workload_gen.name());
 
-    // Write to CSV
-    metrics.to_csv(scheduler_name, workload_gen.name(), csv_out);
+    // Write aggregate + task-level outputs
+    write_metrics_row(metrics, scheduler_name, workload_gen.name(),
+                      config, replication, csv_out);
+    write_task_rows(tasks, scheduler_name, workload_gen.name(),
+                    config, replication, task_out);
 }
 
 void run_experiment_mq(
@@ -201,7 +297,9 @@ void run_experiment_mq(
     const std::string& scheduler_name,
     WorkloadGenerator& workload_gen,
     const Config& config,
-    std::ostream& csv_out)
+    int replication,
+    std::ostream& csv_out,
+    std::ostream& task_out)
 {
     std::cout << "\n[" << scheduler_name << " on " << workload_gen.name()
               << " (multi-queue, " << config.balancer << ")]\n";
@@ -238,8 +336,11 @@ void run_experiment_mq(
     // Print results
     metrics.print(scheduler_name, workload_gen.name());
 
-    // Write to CSV
-    metrics.to_csv(scheduler_name, workload_gen.name(), csv_out);
+    // Write aggregate + task-level outputs
+    write_metrics_row(metrics, scheduler_name, workload_gen.name(),
+                      config, replication, csv_out);
+    write_task_rows(tasks, scheduler_name, workload_gen.name(),
+                    config, replication, task_out);
 }
 
 int main(int argc, char* argv[]) {
@@ -281,16 +382,28 @@ int main(int argc, char* argv[]) {
     }
     csv_filename += ".csv";
 
-    // Open CSV output
+    // Open aggregate CSV output
     std::ofstream csv_file(csv_filename);
     if (!csv_file) {
         std::cerr << "Error: Could not open " << csv_filename << " for writing\n";
         return 1;
     }
+    write_metrics_header(csv_file);
 
-    csv_file << "Scheduler,Workload,Completed,MeanRT,"
-             << "P95RT,P99RT,MeanTAT,MeanWT,Throughput,JainsFairness,"
-             << "ContextSwitches,Preemptions\n";
+    // Open task-level CSV output
+    std::string task_csv_filename = csv_filename;
+    if (task_csv_filename.size() >= 4 &&
+        task_csv_filename.substr(task_csv_filename.size() - 4) == ".csv") {
+        task_csv_filename.replace(task_csv_filename.size() - 4, 4, "_tasks.csv");
+    } else {
+        task_csv_filename += "_tasks.csv";
+    }
+    std::ofstream task_csv_file(task_csv_filename);
+    if (!task_csv_file) {
+        std::cerr << "Error: Could not open " << task_csv_filename << " for writing\n";
+        return 1;
+    }
+    write_task_header(task_csv_file);
     
     // Define all schedulers
     std::vector<std::pair<std::string, std::function<SchedulerPtr()>>> all_schedulers = {
@@ -381,16 +494,17 @@ int main(int argc, char* argv[]) {
                 
                 if (config.topology == "mq") {
                     run_experiment_mq(sched_factory, sched_name, *workload_gen,
-                                     config, csv_file);
+                                     config, rep + 1, csv_file, task_csv_file);
                 } else {
                     run_experiment(sched_factory, sched_name, *workload_gen,
-                                 config, csv_file);
+                                 config, rep + 1, csv_file, task_csv_file);
                 }
             }
         }
     }
     
     csv_file.close();
+    task_csv_file.close();
     
     std::cout << "\n";
     std::cout << "====================================================\n";

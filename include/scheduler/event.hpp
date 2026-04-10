@@ -9,6 +9,7 @@
 #include <queue>
 #include <vector>
 #include <functional>
+#include <optional>
 
 namespace sched_sim {
 

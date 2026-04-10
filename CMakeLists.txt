@@ -92,6 +92,9 @@ add_library(scheduler_core STATIC
 target_include_directories(scheduler_core PUBLIC
     ${PROJECT_SOURCE_DIR}/include
 )
+target_compile_options(scheduler_core PRIVATE
+    -include${PROJECT_SOURCE_DIR}/include/compat/builtin_compat.hpp
+)
 
 target_link_libraries(scheduler_core PUBLIC
     random_lib
@@ -109,6 +112,9 @@ add_library(workloads STATIC
 target_include_directories(workloads PUBLIC
     ${PROJECT_SOURCE_DIR}/include
 )
+target_compile_options(workloads PRIVATE
+    -include${PROJECT_SOURCE_DIR}/include/compat/builtin_compat.hpp
+)
 
 target_link_libraries(workloads PUBLIC
     scheduler_core
@@ -120,6 +126,9 @@ target_link_libraries(workloads PUBLIC
 # ============================================================================
 add_executable(scheduler_sim
     apps/main.cpp
+)
+target_compile_options(scheduler_sim PRIVATE
+    -include${PROJECT_SOURCE_DIR}/include/compat/builtin_compat.hpp
 )
 
 target_link_libraries(scheduler_sim PRIVATE
