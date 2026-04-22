@@ -1,0 +1,25 @@
+{
+  "schema_version": "suite.v1",
+  "benchmark_version": "community-v1",
+  "suite_id": "exp1-multicore-8c",
+  "title": "Exp1 Multi-core Scaling up to 8 cores",
+  "description": "Desktop + Google workloads, n=10000, t=100000, cores=1/2/4/8.",
+  "defaults": { "scheduler": "all", "replications": 1, "topology": "sq", "seed_base": 123456789 },
+  "experiments": [
+    {
+      "id": "exp1_multicore_scaling",
+      "title": "Exp 1 - Multi-core Scaling",
+      "objective": "Throughput scaling with cores.",
+      "runs": [
+        { "workload": "desktop", "cores": 1, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "desktop", "cores": 2, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "desktop", "cores": 4, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "desktop", "cores": 8, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "google", "cores": 1, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "google", "cores": 2, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "google", "cores": 4, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "google", "cores": 8, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" }
+      ]
+    }
+  ]
+}

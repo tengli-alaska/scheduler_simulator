@@ -10,7 +10,7 @@ A C++17 discrete-event simulator for evaluating CPU scheduling policies across s
 - **Load balancers** (MQMS): Round-Robin, Least-Loaded
 - **Work stealing**: Idle cores steal from busiest queue (MQMS only)
 - **Metrics**: Response time (mean, P95, P99), turnaround, throughput, Jain's fairness, context switches, preemptions
-- **Run tracking**: Results saved to `runs/` with CLI parameters encoded in the filename
+- **Run tracking**: Isolated run artifacts in `runs/<suite_id>/<run_id>/`
 
 ---
 
@@ -137,35 +137,212 @@ cmake -B cmake-build -S . && cmake --build cmake-build
 
 ---
 
-## Usage
+## Reproducible Workflow (Recommended)
+
+This is the canonical, reproducible path to:
+1. Prepare workloads
+2. Run experiments
+3. Run analysis
+4. Generate plots
+
+### 1) Python environment (recommended)
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r scripts/plot_requirements.txt
+```
+
+### 2) Build simulator
+
+```bash
+make clean && make -j4
+```
+
+Canonical binary path:
+
+```bash
+BIN=./build/bin/scheduler_sim
+```
+
+If you use CMake instead, set:
+
+```bash
+BIN=./cmake-build/bin/scheduler_sim
+```
+
+### 3) Download and prepare real-world workloads
+
+The suite uses Google + Alibaba trace workloads. Prepare both before running the full suite.
+
+#### Google Borg V3
+
+1. Download Google ClusterData2019 instance events shards (`instance_events-*.json.gz`) from:
+   - https://github.com/google/cluster-data/blob/master/ClusterData2019.md
+2. Extract simulator CSV:
+
+```bash
+python3 real-time-workloads/google_v3/extract_google_v3.py \
+  /path/to/instance_events-*.json.gz \
+  -o real-time-workloads/google_v3/google_v3_workload.csv \
+  -n 50000
+```
+
+#### Alibaba Cluster Trace V2018
+
+1. Download Alibaba `batch_instance.csv` from:
+   - https://github.com/alibaba/clusterdata/tree/master/cluster-trace-v2018
+2. Create subset CSV at the simulator's expected path:
+
+```bash
+python3 real-time-workloads/alibaba_v2018/make_subset.py \
+  --input /path/to/batch_instance.csv \
+  --output real-time-workloads/alibaba_v2018/batch_instance_subset_head_40000_with_header.csv \
+  --size 40000 \
+  --mode head
+```
+
+Quick sanity check:
+
+```bash
+ls -lh real-time-workloads/google_v3/google_v3_workload.csv
+ls -lh real-time-workloads/alibaba_v2018/batch_instance_subset_head_40000_with_header.csv
+```
+
+### 4) Run benchmark experiments (suite-driven)
+
+Validate suite:
+
+```bash
+python3 scripts/validate_benchmark_spec.py --suite benchmark/spec/suites/community_v1.json
+```
+
+Preview commands (dry run):
+
+```bash
+python3 -m benchmark.runner.run_suite \
+  --suite benchmark/spec/suites/community_v1.json \
+  --bin "$BIN" \
+  --dry-run
+```
+
+Run all experiments:
+
+```bash
+python3 -m benchmark.runner.run_suite \
+  --suite benchmark/spec/suites/community_v1.json \
+  --bin "$BIN" \
+  --clean-suite-dir \
+  --generate-manifests
+```
+
+### 5) Run analysis
+
+```bash
+python3 scripts/aggregate_results.py
+python3 scripts/export_summary_table.py
+```
+
+Core outputs:
+- `analysis/metrics_enriched.csv`
+- `analysis/run_index.csv`
+- `analysis/quality_checks.csv`
+- `analysis/summary_table.csv`
+
+### 6) Generate plots
+
+Experiment plots (Exp1-Exp6):
+
+```bash
+python3 scripts/plot_experiment_suite.py \
+  --analysis-dir analysis \
+  --output-dir figures/experiments/community-core-exp1-exp6 \
+  --formats png,pdf \
+  --dpi 300 \
+  --suite benchmark/spec/suites/community_v1.json
+```
+
+Optional publication-pack plots (RQ1-RQ5):
+
+```bash
+python3 scripts/plot_publication_figures.py \
+  --analysis-dir analysis \
+  --output-dir figures \
+  --formats png,pdf \
+  --dpi 300
+```
+
+Inspect generated plots:
+
+```bash
+ls -lh figures/experiments/community-core-exp1-exp6
+ls -lh figures
+```
+
+Optional report pack:
+
+```bash
+python3 -m benchmark.report --suite benchmark/spec/suites/community_v1.json --format md
+```
+
+### One-command pipeline
+
+```bash
+./scripts/run_full_analysis.sh benchmark/spec/suites/community_v1.json
+```
+
+If you built with CMake and want explicit binary control, run the manual pipeline with `--bin "$BIN"`:
+
+```bash
+python3 scripts/validate_benchmark_spec.py --suite benchmark/spec/suites/community_v1.json
+python3 -m benchmark.runner.run_suite --suite benchmark/spec/suites/community_v1.json --bin "$BIN" --clean-suite-dir --generate-manifests
+python3 scripts/aggregate_results.py
+python3 scripts/export_summary_table.py --analysis-dir analysis
+python3 scripts/plot_experiment_suite.py --analysis-dir analysis --output-dir figures/experiments/community-core-exp1-exp6 --formats png,pdf --dpi 300 --suite benchmark/spec/suites/community_v1.json
+```
+
+Enable optional report pack in the wrapper:
+
+```bash
+BENCHMARK_ENABLE_REPORT=1 ./scripts/run_full_analysis.sh benchmark/spec/suites/community_v1.json
+```
+
+---
+
+## Advanced Appendix
+
+Use this section only if you need lower-level controls than the recommended workflow.
+
+### Manual CLI Usage
 
 ```bash
 # Run all schedulers on all workloads (SQSS, 1 core, 100 tasks)
-./cmake-build/bin/scheduler_sim
+$BIN
 
 # SQMS: shared queue, 4 cores
-./cmake-build/bin/scheduler_sim -n 500 -c 4 -m sq
+$BIN -n 500 -c 4 -m sq
 
 # MQMS: per-core queues, least-loaded balancer (default), work stealing on
-./cmake-build/bin/scheduler_sim -n 500 -c 4 -m mq
+$BIN -n 500 -c 4 -m mq
 
 # MQMS: round-robin balancer
-./cmake-build/bin/scheduler_sim -n 500 -c 4 -m mq -b rr
+$BIN -n 500 -c 4 -m mq -b rr
 
 # MQMS: disable work stealing
-./cmake-build/bin/scheduler_sim -n 500 -c 4 -m mq --no-steal
+$BIN -n 500 -c 4 -m mq --no-steal
 
 # Specific scheduler and workload
-./cmake-build/bin/scheduler_sim -s cfs -w server
+$BIN -s cfs -w server
 
-# Google Borg V3 trace (requires CSV — see below)
-./cmake-build/bin/scheduler_sim -w google -n 1000 -c 4
+# Google Borg V3 trace (requires prepared trace CSV)
+$BIN -w google -n 1000 -c 4
 
-# Alibaba V2018 trace (requires CSV — see below)
-./cmake-build/bin/scheduler_sim -w alibaba -n 1000 -c 4
+# Alibaba V2018 trace (requires prepared trace CSV)
+$BIN -w alibaba -n 1000 -c 4
 
 # Multiple replications
-./cmake-build/bin/scheduler_sim -n 100 -c 4 -r 5
+$BIN -n 100 -c 4 -r 5
 ```
 
 ### Options
@@ -183,134 +360,81 @@ cmake -B cmake-build -S . && cmake --build cmake-build
 | `--no-steal` | Disable work stealing (mq only) | — |
 | `-h` | Show help | — |
 
----
+Additional provenance flags:
 
-## Testing Configurations
-
-6 configurations are run per scheduler (24 total across all 4 schedulers):
-
-| # | Topology | Cores | Tasks | Flag Combination |
-|---|----------|-------|-------|-----------------|
-| 1 | SQSS | 1 | 10,000 | `-c 1 -m sq -n 10000` |
-| 2 | SQSS | 1 | 100,000 | `-c 1 -m sq -n 100000` |
-| 3 | SQMS | 4 | 10,000 | `-c 4 -m sq -n 10000` |
-| 4 | SQMS | 4 | 100,000 | `-c 4 -m sq -n 100000` |
-| 5 | MQMS (RR) | 4 | 10,000 | `-c 4 -m mq -b rr -n 10000` |
-| 6 | MQMS (RR) | 4 | 100,000 | `-c 4 -m mq -b rr -n 100000` |
-
-Run all 6 for a single scheduler (e.g. CFS):
-
-```bash
-./cmake-build/bin/scheduler_sim -s cfs -c 1 -m sq -n 10000
-./cmake-build/bin/scheduler_sim -s cfs -c 1 -m sq -n 100000
-./cmake-build/bin/scheduler_sim -s cfs -c 4 -m sq -n 10000
-./cmake-build/bin/scheduler_sim -s cfs -c 4 -m sq -n 100000
-./cmake-build/bin/scheduler_sim -s cfs -c 4 -m mq -b rr -n 10000
-./cmake-build/bin/scheduler_sim -s cfs -c 4 -m mq -b rr -n 100000
-```
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--benchmark-version <id>` | Benchmark version tag embedded in CSVs | `community-v1` |
+| `--suite-id <id>` | Benchmark suite id embedded in CSVs | `ad-hoc` |
+| `--run-id <id>` | Explicit run id (otherwise timestamp-based) | auto |
+| `--seed <num>` | Base RNG seed | `123456789` |
 
 ---
 
-## Real-World Trace Workloads
+### Artifact model
 
-> **The raw trace files are NOT included in this repository.** They must be downloaded separately and placed in the correct paths before running. The extraction scripts convert the raw data into the CSV format the simulator expects.
+Run artifacts are isolated per case:
 
-### Google Borg V3
+```
+runs/<suite_id>/<run_id>/metrics.csv
+runs/<suite_id>/<run_id>/tasks.csv
+runs/<suite_id>/<run_id>/manifest.json
+```
 
-**Step 1 — Download** the Google Cluster Data 2019 (Borg V3) instance events from:
-> https://github.com/google/cluster-data/blob/master/ClusterData2019.md
+Canonical analysis outputs:
+- `analysis/metrics_enriched.csv`
+- `analysis/run_index.csv`
+- `analysis/quality_checks.csv`
+- `analysis/summary_table.csv`
+- `analysis/summary_table.md`
 
-The relevant files are the `instance_events` JSON shards (gzipped, ~several GB total).
+### Suite + manifest utilities
 
-**Step 2 — Extract** using the provided script:
+Suite spec and schema:
+- `benchmark/spec/schema/benchmark_suite.schema.json`
+- `benchmark/spec/suites/community_v1.json`
+
+Validate suite:
 
 ```bash
-python3 real-time-workloads/google_v3/extract_google_v3.py \
-    path/to/instance_events-*.json.gz \
-    -o real-time-workloads/google_v3/google_v3_workload.csv \
-    -n 50000
+python3 scripts/validate_benchmark_spec.py --suite benchmark/spec/suites/community_v1.json
 ```
 
-Optional flags:
-- `-n <num>` — limit to N complete tasks
-- `-t <seconds>` — only include tasks submitted in the first T seconds
-
-**Step 3 — Run:**
+Regenerate manifests from existing run artifacts:
 
 ```bash
-./cmake-build/bin/scheduler_sim -w google -n 1000 -c 4
+python3 scripts/generate_run_manifests.py --runs-dir runs
 ```
 
-Expected CSV location: `real-time-workloads/google_v3/google_v3_workload.csv`
-Expected columns: `arrival_time_us`, `cpu_burst_duration_us`, `nice`
+### Plugin extensibility (lightweight)
 
----
+Scheduler/workload selectors are plugin-registered.
 
-### Alibaba Cluster Trace V2018
+Core files:
+- `benchmark/plugins/registry.py`
+- `benchmark/plugins/loader.py`
+- `benchmark/plugins/builtins.py`
 
-**Step 1 — Download** the Alibaba Cluster Trace v2018 batch instance data from:
-> https://github.com/alibaba/clusterdata/tree/master/cluster-trace-v2018
-
-The relevant file is `batch_instance.tar.gz`.
-
-**Step 2 — Generate subset** using the provided script:
+Optional plugin path:
 
 ```bash
-python3 real-time-workloads/alibaba_v2018/make_subset.py
+python3 -m benchmark.runner.run_suite \
+  --suite benchmark/spec/suites/community_v1.json \
+  --plugins benchmark/plugins/local
 ```
 
-This produces: `real-time-workloads/alibaba_v2018/batch_instance_subset_head_40000_with_header.csv`
+Templates and docs:
+- `templates/new_workload.py`
+- `templates/new_scheduler.py`
+- `templates/new_suite.yaml`
+- `docs/plugin_registration.md`
+- `docs/add_benchmark_in_10_minutes.md`
+- `docs/benchmarking_quickstart.md`
+- `docs/contributing_benchmarks.md`
 
-**Step 3 — Run:**
+### Optional publication/report commands
 
-```bash
-./cmake-build/bin/scheduler_sim -w alibaba -n 1000 -c 4
-```
-
-Expected columns: `task_type`, `status`, `start_time`, `end_time`
-
----
-
-Both traces are normalized to `t=0` at simulation start and times are converted to milliseconds.
-
----
-
-## Results
-
-Results are saved to `runs/` with parameters encoded in the filename:
-
-```
-runs/n1000_c4_s-all_w-server_r1_m-sq.csv
-runs/n1000_c4_s-all_w-server_r1_m-sq_tasks.csv
-```
-
-Each aggregate CSV row contains:
-
-```
-Replication, NumTasks, Cores, Topology, Balancer, WorkStealing, StopTime,
-Scheduler, Workload, Completed, CompletionRatio, MeanRT, P95RT, P99RT,
-MeanTAT, MeanWT, Throughput, ThroughputPerCore, Utilization, JainsFairness,
-ContextSwitches, Preemptions
-```
-
-Each `*_tasks.csv` row contains per-task details (including `Nice`, `Weight`,
-`AllocatedCPU`, `ResponseTime`, `WaitTime`, `TurnaroundTime`) for deeper
-fairness/overhead analysis.
-
----
-
-## Publication Figures
-
-The plotting pipeline reads only `analysis/*.csv` and outputs publication-ready
-figures mapped to RQ1-RQ5.
-
-Install plotting dependencies:
-
-```bash
-python3 -m pip install -r scripts/plot_requirements.txt
-```
-
-Generate figures:
+RQ-style figure pack:
 
 ```bash
 python3 scripts/plot_publication_figures.py \
@@ -320,28 +444,15 @@ python3 scripts/plot_publication_figures.py \
   --dpi 300
 ```
 
-The script writes:
-- `figures/rq1_*` (throughput + throughput deltas)
-- `figures/rq2_*` (weighted allocation behavior)
-- `figures/rq3_*` (synthetic vs real comparison)
-- `figures/rq4_*` (workload-characteristic sensitivity)
-- `figures/rq5_*` (overhead and tradeoff views)
-- `figures/figure_index.md`
-
-To generate figures tied directly to an `Exp1..Exp6` command suite, run:
+Optional markdown report pack:
 
 ```bash
-python3 scripts/aggregate_results.py
-python3 scripts/plot_experiment_suite.py \
-  --analysis-dir analysis \
-  --output-dir figures/experiments \
-  --formats png,pdf \
-  --dpi 300
+python3 -m benchmark.report --suite benchmark/spec/suites/community_v1.json --format md
 ```
 
 ---
 
-## Project Structure
+### Project Structure
 
 ```
 include/
@@ -378,18 +489,29 @@ runs/                     Simulation results (gitignored)
 
 ---
 
-## Adding a New Scheduler
+### Adding a New Scheduler
 
 1. Create `include/schedulers/my_scheduler.hpp`
 2. Extend `SingleQueueScheduler` or `MultiQueueScheduler`
 3. Implement: `schedule()`, `on_cpu_used()`, `should_preempt()`
 4. Register in `apps/main.cpp` scheduler list
+5. (Benchmark layer) register selector key/alias via plugin if needed:
+   - `benchmark/plugins/local/my_scheduler.py`
+   - implement `register(registry)`
 
-## Adding a New Workload
+### Adding a New Workload
 
 1. Add class to `include/scheduler/workload.hpp` extending `WorkloadGenerator`
 2. Create `src/workloads/my_workload.cpp` implementing `generate()`
 3. Register in `apps/main.cpp` workload list
+4. (Benchmark layer) register workload key/alias plugin:
+   - start from `templates/new_workload.py`
+   - save into `benchmark/plugins/local/`
+
+For quick onboarding, see:
+
+- `docs/plugin_registration.md`
+- `docs/add_benchmark_in_10_minutes.md`
 
 ---
 

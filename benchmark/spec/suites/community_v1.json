@@ -1,0 +1,77 @@
+{
+  "schema_version": "suite.v1",
+  "benchmark_version": "community-v1",
+  "suite_id": "community-core-exp1-exp6",
+  "title": "Community Core Scheduler Benchmark Suite",
+  "description": "Canonical six-experiment suite for fairness, latency, throughput, topology, and overhead analysis.",
+  "defaults": {
+    "scheduler": "all",
+    "replications": 1,
+    "topology": "sq",
+    "seed_base": 123456789
+  },
+  "experiments": [
+    {
+      "id": "exp1_multicore_scaling",
+      "title": "Exp 1 - Multi-core Scaling",
+      "objective": "Measure scaling with cores at fixed task count and stop time.",
+      "runs": [
+        { "workload": "desktop", "cores": 1, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "desktop", "cores": 2, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "desktop", "cores": 4, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "google", "cores": 1, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "google", "cores": 2, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" },
+        { "workload": "google", "cores": 4, "num_tasks": 10000, "stop_time": 100000, "topology": "sq" }
+      ]
+    },
+    {
+      "id": "exp2_high_load_convergence",
+      "title": "Exp 2 - High-load Convergence",
+      "objective": "Measure graceful degradation as task count increases.",
+      "runs": [
+        { "workload": "desktop", "cores": 4, "num_tasks": 1000, "stop_time": 500000, "topology": "sq" },
+        { "workload": "desktop", "cores": 4, "num_tasks": 5000, "stop_time": 500000, "topology": "sq" },
+        { "workload": "desktop", "cores": 4, "num_tasks": 10000, "stop_time": 500000, "topology": "sq" },
+        { "workload": "desktop", "cores": 4, "num_tasks": 15000, "stop_time": 500000, "topology": "sq" },
+        { "workload": "google", "cores": 4, "num_tasks": 1000, "stop_time": 500000, "topology": "sq" },
+        { "workload": "google", "cores": 4, "num_tasks": 5000, "stop_time": 500000, "topology": "sq" },
+        { "workload": "google", "cores": 4, "num_tasks": 10000, "stop_time": 500000, "topology": "sq" },
+        { "workload": "google", "cores": 4, "num_tasks": 15000, "stop_time": 500000, "topology": "sq" }
+      ]
+    },
+    {
+      "id": "exp3_scheduler_workload_matrix",
+      "title": "Exp 3 - Scheduler x Workload Matrix",
+      "objective": "Compare all schedulers on all workloads at one fixed point.",
+      "runs": [
+        { "workload": "all", "cores": 4, "num_tasks": 20000, "stop_time": 500000, "topology": "sq" }
+      ]
+    },
+    {
+      "id": "exp4_fairness_vs_latency",
+      "title": "Exp 4 - Fairness vs Latency Tradeoff",
+      "objective": "No new runs. Uses Exp 3 rows.",
+      "reuse_from_experiment": "exp3_scheduler_workload_matrix",
+      "runs": []
+    },
+    {
+      "id": "exp5_topology_comparison",
+      "title": "Exp 5 - Topology Comparison",
+      "objective": "Measure queue topology, balancing, and stealing effects.",
+      "runs": [
+        { "workload": "google", "cores": 4, "num_tasks": 20000, "stop_time": 500000, "topology": "sq" },
+        { "workload": "google", "cores": 4, "num_tasks": 20000, "stop_time": 500000, "topology": "mq", "balancer": "rr", "work_stealing": true },
+        { "workload": "google", "cores": 4, "num_tasks": 10000, "stop_time": 500000, "topology": "mq", "balancer": "rr", "work_stealing": false },
+        { "workload": "google", "cores": 4, "num_tasks": 20000, "stop_time": 500000, "topology": "mq", "balancer": "leastloaded", "work_stealing": true },
+        { "workload": "google", "cores": 4, "num_tasks": 20000, "stop_time": 500000, "topology": "mq", "balancer": "leastloaded", "work_stealing": false }
+      ]
+    },
+    {
+      "id": "exp6_overhead_cost_analysis",
+      "title": "Exp 6 - Overhead Cost Analysis",
+      "objective": "No new runs. Uses Exp 3 rows.",
+      "reuse_from_experiment": "exp3_scheduler_workload_matrix",
+      "runs": []
+    }
+  ]
+}

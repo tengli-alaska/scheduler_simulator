@@ -1,0 +1,63 @@
+schema_version: suite.v1
+benchmark_version: community-v1
+suite_id: my-suite-v1
+title: My Benchmark Suite
+description: >
+  Describe what this suite evaluates and why the selected experiments are useful.
+
+defaults:
+  scheduler: all
+  replications: 5
+  topology: sq
+  seed_base: 123456789
+
+experiments:
+  - id: expA_scaling
+    title: Exp A - Scaling
+    objective: Throughput/latency trend as cores increase
+    runs:
+      - workload: desktop
+        cores: 1
+        num_tasks: 10000
+        stop_time: 100000
+        topology: sq
+      - workload: desktop
+        cores: 2
+        num_tasks: 10000
+        stop_time: 100000
+        topology: sq
+      - workload: desktop
+        cores: 4
+        num_tasks: 10000
+        stop_time: 100000
+        topology: sq
+
+  - id: expB_topology
+    title: Exp B - Topology
+    objective: Compare SQ vs MQ balancing strategies
+    runs:
+      - workload: google
+        cores: 4
+        num_tasks: 20000
+        stop_time: 500000
+        topology: sq
+      - workload: google
+        cores: 4
+        num_tasks: 20000
+        stop_time: 500000
+        topology: mq
+        balancer: rr
+        work_stealing: true
+      - workload: google
+        cores: 4
+        num_tasks: 20000
+        stop_time: 500000
+        topology: mq
+        balancer: leastloaded
+        work_stealing: false
+
+  - id: expC_tradeoff
+    title: Exp C - Tradeoff View
+    objective: Reuse matrix data for fairness-vs-latency and overhead plots
+    reuse_from_experiment: expB_topology
+    runs: []

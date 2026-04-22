@@ -20,13 +20,20 @@
 #include <string>
 #include <cstring>
 #include <algorithm>
+#include <ctime>
+#include <cctype>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <filesystem>
 
 extern "C" {
     #include "rngs.h"
 }
 
 using namespace sched_sim;
+
+static const char* METRICS_SCHEMA_VERSION = "metrics.v2";
+static const char* TASK_SCHEMA_VERSION = "tasks.v2";
 
 std::string to_lower(const std::string& s) {
     std::string result = s;
@@ -52,14 +59,42 @@ struct Config {
     std::string topology = "sq";          // "sq" = single-queue, "mq" = multi-queue
     std::string balancer = "leastloaded"; // "rr" = round-robin, "leastloaded"
     bool work_stealing = true;
+    std::string benchmark_version = "community-v1";
+    std::string suite_id = "ad-hoc";
+    std::string run_id;
+    long seed_base = 123456789L;
+    std::string artifact_dir;
 };
+
+std::string make_default_run_id() {
+    return "run-" + std::to_string(std::time(nullptr)) + "-" + std::to_string(getpid());
+}
+
+std::string sanitize_id(const std::string& raw) {
+    std::string out;
+    out.reserve(raw.size());
+    for (char ch : raw) {
+        if (std::isalnum(static_cast<unsigned char>(ch)) || ch == '-' || ch == '_') {
+            out.push_back(ch);
+        } else {
+            out.push_back('-');
+        }
+    }
+    if (out.empty()) return "run-unknown";
+    return out;
+}
+
+std::string default_artifact_dir(const Config& config) {
+    return "runs/" + sanitize_id(config.suite_id) + "/" + sanitize_id(config.run_id);
+}
 
 std::string work_stealing_label(const Config& config) {
     return config.work_stealing ? "on" : "off";
 }
 
 void write_metrics_header(std::ostream& out) {
-    out << "Replication,NumTasks,Cores,Topology,Balancer,WorkStealing,StopTime,"
+    out << "BenchmarkVersion,SchemaVersion,SuiteId,RunId,Seed,"
+        << "Replication,NumTasks,Cores,Topology,Balancer,WorkStealing,StopTime,"
         << "Scheduler,Workload,Completed,CompletionRatio,MeanRT,"
         << "P95RT,P99RT,MeanTAT,MeanWT,Throughput,ThroughputPerCore,"
         << "Utilization,JainsFairness,ContextSwitches,Preemptions\n";
@@ -69,6 +104,7 @@ void write_metrics_row(const Metrics& metrics,
                        const std::string& scheduler_name,
                        const std::string& workload_name,
                        const Config& config,
+                       long seed,
                        int replication,
                        std::ostream& out) {
     const double completion_ratio =
@@ -76,7 +112,12 @@ void write_metrics_row(const Metrics& metrics,
     const double throughput_per_core =
         metrics.throughput / static_cast<double>(std::max(1, config.num_cores));
 
-    out << replication << ","
+    out << config.benchmark_version << ","
+        << METRICS_SCHEMA_VERSION << ","
+        << config.suite_id << ","
+        << config.run_id << ","
+        << seed << ","
+        << replication << ","
         << config.num_tasks << ","
         << config.num_cores << ","
         << config.topology << ","
@@ -101,7 +142,8 @@ void write_metrics_row(const Metrics& metrics,
 }
 
 void write_task_header(std::ostream& out) {
-    out << "Replication,NumTasks,Cores,Topology,Balancer,WorkStealing,StopTime,"
+    out << "BenchmarkVersion,SchemaVersion,SuiteId,RunId,Seed,"
+        << "Replication,NumTasks,Cores,Topology,Balancer,WorkStealing,StopTime,"
         << "Scheduler,Workload,TaskID,Nice,Weight,Arrival,Execution,"
         << "AllocatedCPU,Remaining,Started,Completed,StartTime,CompletionTime,"
         << "ResponseTime,TurnaroundTime,WaitTime,PreemptionCount\n";
@@ -111,6 +153,7 @@ void write_task_rows(const std::vector<TaskPtr>& tasks,
                      const std::string& scheduler_name,
                      const std::string& workload_name,
                      const Config& config,
+                     long seed,
                      int replication,
                      std::ostream& out) {
     for (const auto& task : tasks) {
@@ -118,7 +161,12 @@ void write_task_rows(const std::vector<TaskPtr>& tasks,
         const bool completed = task->completion_time() >= 0.0;
         const double allocated_cpu = task->execution_time() - task->remaining_time();
 
-        out << replication << ","
+        out << config.benchmark_version << ","
+            << TASK_SCHEMA_VERSION << ","
+            << config.suite_id << ","
+            << config.run_id << ","
+            << seed << ","
+            << replication << ","
             << config.num_tasks << ","
             << config.num_cores << ","
             << config.topology << ","
@@ -173,6 +221,11 @@ void print_usage(const char* program_name) {
     std::cout << "                 mq = multi-queue multi-server (per-core queues)\n";
     std::cout << "  -b <balancer>  Load balancer for mq topology (default: leastloaded)\n";
     std::cout << "                 rr = round-robin, leastloaded = least-loaded\n";
+    std::cout << "  --benchmark-version <id>  Benchmark version tag (default: community-v1)\n";
+    std::cout << "  --suite-id <id>           Benchmark suite id (default: ad-hoc)\n";
+    std::cout << "  --run-id <id>             Explicit run id (default: auto timestamp)\n";
+    std::cout << "  --seed <num>              Base RNG seed (default: 123456789)\n";
+    std::cout << "  --artifact-dir <path>     Output directory for metrics/tasks artifacts\n";
     std::cout << "  --no-steal     Disable work stealing in mq topology\n";
     std::cout << "  -h             Show this help message\n";
     std::cout << "\n";
@@ -206,6 +259,16 @@ Config parse_args(int argc, char* argv[]) {
             config.topology = to_lower(argv[++i]);
         } else if (std::strcmp(argv[i], "-b") == 0 && i + 1 < argc) {
             config.balancer = to_lower(argv[++i]);
+        } else if (std::strcmp(argv[i], "--benchmark-version") == 0 && i + 1 < argc) {
+            config.benchmark_version = argv[++i];
+        } else if (std::strcmp(argv[i], "--suite-id") == 0 && i + 1 < argc) {
+            config.suite_id = argv[++i];
+        } else if (std::strcmp(argv[i], "--run-id") == 0 && i + 1 < argc) {
+            config.run_id = argv[++i];
+        } else if (std::strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {
+            config.seed_base = std::atol(argv[++i]);
+        } else if (std::strcmp(argv[i], "--artifact-dir") == 0 && i + 1 < argc) {
+            config.artifact_dir = argv[++i];
         } else if (std::strcmp(argv[i], "--no-steal") == 0) {
             config.work_stealing = false;
         } else if (std::strcmp(argv[i], "-h") == 0 || std::strcmp(argv[i], "--help") == 0) {
@@ -248,6 +311,22 @@ void validate_config_or_exit(const Config& config) {
         std::cerr << "Valid options: rr, leastloaded\n";
         std::exit(1);
     }
+    if (config.seed_base <= 0) {
+        std::cerr << "Error: Seed must be > 0\n";
+        std::exit(1);
+    }
+    if (config.benchmark_version.empty()) {
+        std::cerr << "Error: benchmark-version must be non-empty\n";
+        std::exit(1);
+    }
+    if (config.suite_id.empty()) {
+        std::cerr << "Error: suite-id must be non-empty\n";
+        std::exit(1);
+    }
+    if (!config.artifact_dir.empty() && config.artifact_dir.find('\0') != std::string::npos) {
+        std::cerr << "Error: artifact-dir contains invalid characters\n";
+        std::exit(1);
+    }
 }
 
 void run_experiment(
@@ -255,6 +334,7 @@ void run_experiment(
     const std::string& scheduler_name,
     WorkloadGenerator& workload_gen,
     const Config& config,
+    long seed,
     int replication,
     std::ostream& csv_out,
     std::ostream& task_out)
@@ -287,9 +367,9 @@ void run_experiment(
 
     // Write aggregate + task-level outputs
     write_metrics_row(metrics, scheduler_name, workload_gen.name(),
-                      config, replication, csv_out);
+                      config, seed, replication, csv_out);
     write_task_rows(tasks, scheduler_name, workload_gen.name(),
-                    config, replication, task_out);
+                    config, seed, replication, task_out);
 }
 
 void run_experiment_mq(
@@ -297,6 +377,7 @@ void run_experiment_mq(
     const std::string& scheduler_name,
     WorkloadGenerator& workload_gen,
     const Config& config,
+    long seed,
     int replication,
     std::ostream& csv_out,
     std::ostream& task_out)
@@ -338,9 +419,9 @@ void run_experiment_mq(
 
     // Write aggregate + task-level outputs
     write_metrics_row(metrics, scheduler_name, workload_gen.name(),
-                      config, replication, csv_out);
+                      config, seed, replication, csv_out);
     write_task_rows(tasks, scheduler_name, workload_gen.name(),
-                    config, replication, task_out);
+                    config, seed, replication, task_out);
 }
 
 int main(int argc, char* argv[]) {
@@ -357,6 +438,11 @@ int main(int argc, char* argv[]) {
     std::cout << "  Scheduler:          " << config.scheduler_filter << "\n";
     std::cout << "  Workload:           " << config.workload_filter << "\n";
     std::cout << "  Topology:           " << (config.topology == "mq" ? "multi-queue" : "single-queue") << "\n";
+    std::cout << "  Benchmark version:  " << config.benchmark_version << "\n";
+    std::cout << "  Suite id:           " << config.suite_id << "\n";
+    std::cout << "  Seed base:          " << config.seed_base << "\n";
+    std::cout << "  Artifact dir:       "
+              << (config.artifact_dir.empty() ? "(auto)" : config.artifact_dir) << "\n";
     if (config.topology == "mq") {
         std::cout << "  Load balancer:      " << config.balancer << "\n";
         std::cout << "  Work stealing:      " << (config.work_stealing ? "on" : "off") << "\n";
@@ -364,23 +450,21 @@ int main(int argc, char* argv[]) {
     std::cout << "\n";
     
     // Initialize RNG
-    PlantSeeds(123456789L);
+    PlantSeeds(config.seed_base);
 
-    // Create runs/ directory
-    mkdir("runs", 0755);
-
-    // Build filename from parameters: runs/n20_c4_s-cfs_w-server_r1.csv
-    std::string csv_filename = "runs/n" + std::to_string(config.num_tasks)
-        + "_c" + std::to_string(config.num_cores)
-        + "_s-" + config.scheduler_filter
-        + "_w-" + config.workload_filter
-        + "_r" + std::to_string(config.num_replications)
-        + "_m-" + config.topology;
-    if (config.topology == "mq") {
-        csv_filename += "_b-" + config.balancer;
-        csv_filename += std::string("_steal-") + (config.work_stealing ? "on" : "off");
+    if (config.run_id.empty()) {
+        config.run_id = make_default_run_id();
     }
-    csv_filename += ".csv";
+    config.run_id = sanitize_id(config.run_id);
+
+    // Create output artifact directory: runs/<suite_id>/<run_id>/ by default.
+    std::string artifact_dir = config.artifact_dir.empty()
+        ? default_artifact_dir(config)
+        : config.artifact_dir;
+    std::filesystem::create_directories(artifact_dir);
+
+    // Canonical artifact filenames for isolated run directories.
+    std::string csv_filename = artifact_dir + "/metrics.csv";
 
     // Open aggregate CSV output
     std::ofstream csv_file(csv_filename);
@@ -391,13 +475,7 @@ int main(int argc, char* argv[]) {
     write_metrics_header(csv_file);
 
     // Open task-level CSV output
-    std::string task_csv_filename = csv_filename;
-    if (task_csv_filename.size() >= 4 &&
-        task_csv_filename.substr(task_csv_filename.size() - 4) == ".csv") {
-        task_csv_filename.replace(task_csv_filename.size() - 4, 4, "_tasks.csv");
-    } else {
-        task_csv_filename += "_tasks.csv";
-    }
+    std::string task_csv_filename = artifact_dir + "/tasks.csv";
     std::ofstream task_csv_file(task_csv_filename);
     if (!task_csv_file) {
         std::cerr << "Error: Could not open " << task_csv_filename << " for writing\n";
@@ -489,15 +567,15 @@ int main(int argc, char* argv[]) {
                 std::cout << "\n[" << current << "/" << total_experiments << "] ";
                 
                 // Set seed for reproducibility
-                long seed = 123456789L + (rep * 1000);
+                long seed = config.seed_base + (rep * 1000);
                 PlantSeeds(seed);
                 
                 if (config.topology == "mq") {
                     run_experiment_mq(sched_factory, sched_name, *workload_gen,
-                                     config, rep + 1, csv_file, task_csv_file);
+                                     config, seed, rep + 1, csv_file, task_csv_file);
                 } else {
                     run_experiment(sched_factory, sched_name, *workload_gen,
-                                 config, rep + 1, csv_file, task_csv_file);
+                                 config, seed, rep + 1, csv_file, task_csv_file);
                 }
             }
         }
@@ -512,6 +590,7 @@ int main(int argc, char* argv[]) {
     std::cout << "====================================================\n";
     std::cout << "\n";
     std::cout << "Results saved to: " << csv_filename << "\n";
+    std::cout << "Task data saved to: " << task_csv_filename << "\n";
     std::cout << "\n";
     
     return 0;

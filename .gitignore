@@ -13,3 +13,19 @@ results.csv
 *.csv
 !workloads/*.csv
 figures/
+.cache/
+.venv/
+
+# Python cache/artifacts
+__pycache__/
+*.py[cod]
+
+# Local plotting/font cache
+.mplconfig/
+
+# Generated benchmark reports
+reports/
+
+# Generated analysis text summaries
+analysis/summary_table.md
+analysis/dataset_summary.txt
